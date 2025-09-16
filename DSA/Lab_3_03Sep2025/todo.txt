@@ -1,0 +1,4 @@
+Divide and Conquer Approach for all:
+1. Reverse the bits of a given 32 bit signed integer
+2. Given an array of points, Points[i] = (x_i, y_i), and an integer k, return k closest points to the origin
+3. Given an integer array 'nums' in sorted order, convert it into a height balenced BST.

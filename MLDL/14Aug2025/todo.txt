@@ -1,0 +1,7 @@
+Linear Regression
+Logistic Regression
+K-Means Clustering
+
+
+Doubt:
+Residual sum of squares vs total sum of squares

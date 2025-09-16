@@ -1,0 +1,11 @@
+Weather,Temperature,Play(Target)
+Sunny,Hot,No
+Sunny,Hot,No
+Overcast,Hot,Yes
+Rain,Mild,Yes
+Rain,Cool,Yes
+Rain,Cool,No
+Overcast,Cool,Yes
+Sunny,Mild,No
+Sunny,Cool,Yes
+Rain,Mild,Yes
