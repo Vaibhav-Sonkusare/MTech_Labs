@@ -125,12 +125,15 @@ void auction_item_cleanup();
 // Global variables
 pthread_rwlock_t device_list_lock;
 struct device *device_list_head = NULL;
+
 pthread_rwlock_t auction_item_list_lock;
 int auction_item_count = 0;
 struct auction_item *auction_item_list_head = NULL;
-struct auction_item *current_auction_item = NULL;               // is this needed?
+struct auction_item *current_auction_item = NULL;  
+
 enum AuctionState auctionstate = AUCTION_NOT_STARTED;
-char *abbrevation[MAX_BID_ATTEMPTS] = {'Once', 'Twice', 'and Thrice'};
+
+static const char *abbrevation[] = {'once', 'twice', 'and thrice'};
  
 int main (int argc, char **argv) {
 
@@ -377,10 +380,10 @@ void start_auction() {
     struct auction_item *itr = auction_item_list_head;
     while (itr != NULL) {
         // auction the item `itr`
-        itr->status = ITEM_AUCTIONNING;
         conduct_auction_for_item(itr);
         itr = itr->next;
     }
+    pthread_rwlock_unlock(&auction_item_list_lock);
 }
 
 // This function will get auction items from clients
@@ -630,70 +633,6 @@ void conduct_auction_for_item(struct auction_item *item) {
         }
         free(pfds);
     }
-
-    /*
-    int auction_duration = 30;          // in seconds
-    int bid_timeout = 10;                // in seconds
-
-    while (difftime(time(NULL), auction_start_time) < auction_duration) {
-        nfds_t pollFdsCount = 0;
-        struct pollfd *pfds = construct_pollfd_array_from_device_list(&pollFdsCount);
-        if (pfds == NULL) {
-            continue;
-        }
-
-        int wait_time = (int) ((bid_timeout - difftime(time(NULL), last_bid_time)) * 1000);   // in milliseconds
-        if (wait_time < 0) {
-            break;
-        }
-
-        int ret = poll(pfds, pollFdsCount, wait_time);
-
-        if (ret < 0) {
-            perror("conduct_auction_for_item: poll failed");
-            free(pfds);
-            continue;
-        } else if (ret == 0) {
-            // timeout
-            free(pfds);
-            break;
-        } else {
-            // some fds are ready
-            for (nfds_t i = 0; i < pollFdsCount; i++) {
-                if (pfds[i].revents & POLLIN) {
-                    // data to read on pfds[i].fd
-                    char buffer[BUFFER_SIZE];
-                    memset(buffer, '\0', BUFFER_SIZE);
-                    ssize_t bytes_received = recv(pfds[i].fd, buffer, BUFFER_SIZE - 1, 0);
-                    if (bytes_received < 0) {
-                        perror("conduct_auction_for_item: recv failed");
-                        continue;
-                    } else if (bytes_received == 0) {
-                        // connection closed by client
-                        printf("Client disconnected, cleaning up\n");
-                        struct device *client = get_device_from_fd(pfds[i].fd);
-                        if (client != NULL) {
-                            cleanup_client(client);
-                        }
-                        continue;
-                    } else {
-                        buffer[bytes_received] = '\0';
-                        float bid = atof(buffer);
-                        if (bid > item->highest_bid && bid >= item->base_price) {
-                            item->highest_bid = bid;
-                            item->highest_bidder = get_device_from_fd(pfds[i].fd);
-                            last_bid_time = time(NULL);
-                            snprintf(message, BUFFER_SIZE, "New highest bid: %.2f", item->highest_bid);
-                            broadcast_message(message);
-                        } else {
-                            message_client(get_device_from_fd(pfds[i].fd), "Bid too low");
-                        }
-                    }
-                }
-            }
-        }
-    }
-    */
 }
 
 void auction_item_cleanup() {
