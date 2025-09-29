@@ -7,7 +7,7 @@ eval "$(ssh-agent -s)"
 ssh-add ~/.ssh/206125030_gitthub
 
 # Navigate to your project directory
-cd ~/Documents/MTech_Labs || { echo "Directory not found"; exit 1; }
+# cd ~/Documents/MTech_Labs || { echo "Directory not found"; exit 1; }
 
 # Pull latest changes from the remote
 # git pull origin main
