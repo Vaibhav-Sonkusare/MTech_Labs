@@ -94,6 +94,7 @@ struct auction_item {
     enum ItemStatus status;
     float highest_bid;
     struct device *highest_bidder;
+    int highest_bidder_fd;
 
     // pointer to next item in the list
     struct auction_item *next;
@@ -107,6 +108,7 @@ struct device *get_next_client_in_list(struct device *);
 struct device *get_device_from_fd(int);
 struct pollfd *construct_pollfd_array_from_device_list(nfds_t *);
 void message_client(struct device *, char *);
+void message_client_fd(int , const char *);
 void broadcast_message(char *);
 void close_all_clients();
 void cleanup_client(struct device *);
@@ -133,10 +135,30 @@ struct auction_item *current_auction_item = NULL;
 
 enum AuctionState auctionstate = AUCTION_NOT_STARTED;
 
-static const char *abbrevation[] = {'once', 'twice', 'and thrice'};
+static const char *abbrevation[] = {"once", "twice", "and thrice"};
  
 int main (int argc, char **argv) {
+    struct device *server = initialize_server();
+    printf("[INFO] Server initialized. Listening on %s:%d\n", IP_ADDRESS, PORT_NO);
 
+    // Start auction in a separate thread
+    pthread_t auction_thread;
+    if (pthread_create(&auction_thread, NULL, (void *(*)(void *))start_auction, NULL) != 0) {
+        perror("main: pthread_create failed");
+        cleanup_server(server);
+        exit(EXIT_FAILURE);
+    }
+
+    // Concurrently accept client connections and handle auctions
+    while (1) {
+        printf("[INFO] Waiting for client connections...\n");
+        struct device *client = accept_client(server);
+        if (client == NULL) continue;
+        printf("[INFO] Client connected.\n");
+    }
+
+    // wait for auction thread to finish
+    pthread_join(auction_thread, NULL);
 
     return 0;
 }
@@ -149,7 +171,18 @@ struct device *initialize_server() {
     }
 
     server->fd = socket(AF_INET, SOCK_STREAM, 0);
-    inet_pton(AF_INET, IP_ADDRESS, &server->addr.sin_addr);
+    if (server->fd == -1) {
+        perror("initialize_connection: Socket Creation Failed!");
+        exit(EXIT_FAILURE);
+    }
+
+    server->addr.sin_family = AF_INET;
+    if (inet_pton(AF_INET, IP_ADDRESS, &server->addr.sin_addr) <= 0) {
+        perror("initialize_server: inet_pton failed");
+        close(server->fd);
+        free(server);
+        exit(EXIT_FAILURE);
+    }
     server->addr.sin_port = htons(PORT_NO);
 
     if (bind(server->fd, (struct sockaddr *) &server->addr, sizeof(server->addr)) == -1) {
@@ -266,9 +299,10 @@ struct pollfd *construct_pollfd_array_from_device_list(nfds_t *count) {
     }
 
     itr = device_list_head;
-    for (nfds_t i = 0; i < *count; i++) {
+    for (nfds_t i = 0; i < *count && itr != NULL; i++) {
         pfds[i].fd = itr->fd;
         pfds[i].events = POLLIN;          // check for data to read
+        pfds[i].revents = 0;
         itr = itr->next;
     }
 
@@ -299,9 +333,28 @@ void message_client(struct device *client, char *message) {
 
     char buffer[BUFFER_SIZE];
     snprintf(buffer, BUFFER_SIZE, "%s\n", message);
-    ssize_t bytes_sent = send(client->fd, buffer, BUFFER_SIZE, 0);
+    ssize_t bytes_sent = send(client->fd, buffer, strlen(buffer), 0);
     if (bytes_sent == -1) {
         perror("message_client: send failed");
+    }
+}
+
+void message_client_fd(int fd, const char *message) {
+    if (fd < 0 || message == NULL) {
+        fprintf(stderr, "message_client_fd: invalid fd or message is NULL\n");
+        return;
+    }
+
+    char buffer[BUFFER_SIZE];
+    int n = snprintf(buffer, BUFFER_SIZE, "%s\n", message);
+    if (n < 0 || n >= BUFFER_SIZE) {
+        fprintf(stderr, "message_client_fd: message too long\n");
+        return;
+    }
+
+    ssize_t bytes_sent = send(fd, buffer, (size_t)n, 0);
+    if (bytes_sent == -1) {
+        perror("message_client_fd: send failed");
     }
 }
 
@@ -339,10 +392,17 @@ void close_all_clients() {
 void cleanup_client(struct device *client) {
     // remove the client from the list `device_list_head`
     pthread_rwlock_wrlock(&device_list_lock);
-    struct device *prev = get_prev_client_in_list(client);
-    prev->next = get_next_client_in_list(client);
+    if (client == device_list_head) {
+        device_list_head = client->next;
+    } else {
+        struct device *prev = get_prev_client_in_list(client);
+        if (prev != NULL) {
+            prev->next = client->next;
+        }
+    }
     pthread_rwlock_unlock(&device_list_lock);
 
+    shutdown(client->fd, SHUT_RDWR);
     if (close(client->fd) == -1) {
         perror("cleanup_client: unable to close file descriptor");
     }
@@ -351,7 +411,7 @@ void cleanup_client(struct device *client) {
 
 void cleanup_server(struct device *server) {
     close_all_clients();
-    auction_item_cleanup(auction_item_list_head);
+    auction_item_cleanup();
 
     if (close(server->fd) == -1) {
         perror("cleanup_server: unable to close file descriptor");
@@ -423,6 +483,7 @@ void get_auction_items_from_clients() {
                     char buffer[BUFFER_SIZE];
                     memset(buffer, '\0', BUFFER_SIZE);
                     ssize_t bytes_received = recv(pfds[i].fd, buffer, BUFFER_SIZE - 1, 0);
+                    fprintf(stderr, "Received data from client fd %d: %s\n", pfds[i].fd, buffer);
                     if (bytes_received < 0) {
                         perror("get_auction_items_from_clients: recv failed");
                         continue;
@@ -440,11 +501,13 @@ void get_auction_items_from_clients() {
                         if (item != NULL) {
                             add_auction_item_to_list(item);
                             // tell client that item is added successfully
-                            message_client(get_device_from_fd(pfds[i].fd), "Item added successfully");
+                            // message_client(get_device_from_fd(pfds[i].fd), "Item added successfully");
+                            message_client_fd(pfds[i].fd, "Item added successfully");
                         } else {
                             fprintf(stderr, "get_auction_items_from_clients: parse_auction_item_from_buffer failed\n");
                             // tell client that item addition failed
-                            message_client(get_device_from_fd(pfds[i].fd), "Item addition failed");
+                            // message_client(get_device_from_fd(pfds[i].fd), "Item addition failed");
+                            message_client_fd(pfds[i].fd, "Item addition failed");
                         }
                     }
                 }
@@ -465,7 +528,7 @@ struct auction_item *parse_auction_item_from_buffer(char *buffer) {
     struct auction_item *item = calloc(1, sizeof(struct auction_item));
     if (item == NULL) {
         perror("parse_auction_item_from_buffer: calloc failed");
-        return;
+        return NULL;
     }
 
     char *token = strtok(buffer, "#");
@@ -477,7 +540,14 @@ struct auction_item *parse_auction_item_from_buffer(char *buffer) {
             strncpy(item->item_desc, token + 10, ITEM_DESC_LEN - 1);
             item->item_desc[ITEM_DESC_LEN - 1] = '\0'; // Ensure null-termination
         } else if (strncmp(token, "BASE_PRICE:", 11) == 0) {
-            item->base_price = atof(token + 11);
+            char *endptr;
+            double price = strtod(token + 11, &endptr);
+            if (*endptr != '\0') {
+                fprintf(stderr, "parse_auction_item_from_buffer: invalid BASE_PRICE\n");
+                free(item);
+                return NULL;
+            }
+            item->base_price = price;
         }
         token = strtok(NULL, "#");
     }
@@ -486,6 +556,7 @@ struct auction_item *parse_auction_item_from_buffer(char *buffer) {
     item->status = ITEM_NOT_STARTED;
     item->highest_bid = 0.0;
     item->highest_bidder = NULL;
+    item->highest_bidder_fd = -1;
     item->next = NULL;
 
     return item;
@@ -572,10 +643,20 @@ void conduct_auction_for_item(struct auction_item *item) {
                 bid_attempts_left--;
                 if (bid_attempts_left == 0) {
                     // auction ends
-                    if (item->highest_bidder != NULL) {
+                    // if (item->highest_bidder != NULL) {
+                    //     snprintf(message, BUFFER_SIZE, "Auction ended for item: %s. Sold to highest bidder with bid: %.2f", item->item_name, item->highest_bid);
+                    //     broadcast_message(message);
+                    //     item->status = ITEM_SOLD;
+                    // } 
+                    if (item->highest_bidder_fd >= 0) {
                         snprintf(message, BUFFER_SIZE, "Auction ended for item: %s. Sold to highest bidder with bid: %.2f", item->item_name, item->highest_bid);
                         broadcast_message(message);
                         item->status = ITEM_SOLD;
+
+                        // Notify highest bidder
+                        snprintf(message, BUFFER_SIZE, "Congratulations! You won the auction for item: %s with bid: %.2f", item->item_name, item->highest_bid);
+                        // message_client(item->highest_bidder, message);
+                        message_client_fd(item->highest_bidder_fd, message);
                     } else {
                         snprintf(message, BUFFER_SIZE, "Auction ended for item: %s. No bids received. Item is unsold.", item->item_name);
                         broadcast_message(message);
@@ -584,7 +665,10 @@ void conduct_auction_for_item(struct auction_item *item) {
                     return;
                 } else {
                     // snprintf(message, BUFFER_SIZE, "No new bids received. %d bid attempts left for item: %s. Current highest bid: %.2f", bid_attempts_left, item->item_name, item->highest_bid);
-                    snprintf(message, BUFFER_SIZE, "Item: %s | Current highest bid: %.2f | Locking in %s...", item->item_name, item->highest_bid, abbrevation[MAX_BID_ATTEMPTS - bid_attempts_left - 1]);
+                    int index = MAX_BID_ATTEMPTS - bid_attempts_left;
+                    if (index < 0) index = 0;
+                    if (index >= MAX_BID_ATTEMPTS) index = MAX_BID_ATTEMPTS - 1;
+                    snprintf(message, BUFFER_SIZE, "Item: %s | Current highest bid: %.2f | Locking in %s...", item->item_name, item->highest_bid, abbrevation[index]);
                     broadcast_message(message);
                 }
             }
@@ -597,6 +681,7 @@ void conduct_auction_for_item(struct auction_item *item) {
                     char buffer[BUFFER_SIZE];
                     memset(buffer, '\0', BUFFER_SIZE);
                     ssize_t bytes_received = recv(pfds[i].fd, buffer, BUFFER_SIZE - 1, 0);
+                    fprintf(stderr, "Received data from client fd %d: %s\n", pfds[i].fd, buffer);
                     if (bytes_received < 0) {
                         perror("conduct_auction_for_item: recv failed");
                         continue;
@@ -612,14 +697,19 @@ void conduct_auction_for_item(struct auction_item *item) {
                         buffer[bytes_received] = '\0';
                         float bid = atof(buffer);
                         if (bid > item->highest_bid && bid >= item->base_price) {
+                            pthread_rwlock_wrlock(&auction_item_list_lock);
                             item->highest_bid = bid;
-                            item->highest_bidder = get_device_from_fd(pfds[i].fd);
+                            // item->highest_bidder = get_device_from_fd(pfds[i].fd);
+                            item->highest_bidder_fd = pfds[i].fd;
+                            pthread_rwlock_unlock(&auction_item_list_lock);
+
                             last_bid_time = time(NULL);
-                            snprintf(message, buffer, "New highest bid: %.2f for item: %s", item->highest_bid, item->item_name);
+                            snprintf(message, BUFFER_SIZE, "New highest bid: %.2f for item: %s", item->highest_bid, item->item_name);
                             broadcast_message(message);
                             bid_received = 1;
                         } else {
-                            message_client(get_device_from_fd(pfds[i].fd), "Bid too low");
+                            // message_client(get_device_from_fd(pfds[i].fd), "Bid too low");
+                            message_client_fd(pfds[i].fd, "Bid too low");
                         }
                     }
                 }
@@ -631,7 +721,6 @@ void conduct_auction_for_item(struct auction_item *item) {
                 waiting_for_first_bid = 0;
             }
         }
-        free(pfds);
     }
 }
 
