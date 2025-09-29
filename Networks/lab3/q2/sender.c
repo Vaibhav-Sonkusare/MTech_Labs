@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 
 #define BUF_SIZE 2048
+#define HEADER_SIZE 32
 
 // Compute number of parity bits required
 int calcParityBits(int m) {
@@ -53,11 +54,11 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    char msg[BUF_SIZE];
+    char msg[BUF_SIZE - HEADER_SIZE];
     printf("Enter binary message: ");
     scanf("%s", msg);
 
-    char encoded[BUF_SIZE];
+    char encoded[BUF_SIZE - HEADER_SIZE];
     hammingEncode(msg, encoded);
 
     printf("Sender: Original=%s Encoded=%s\n", msg, encoded);
