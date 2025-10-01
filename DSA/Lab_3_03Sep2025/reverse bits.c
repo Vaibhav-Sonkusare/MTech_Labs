@@ -14,7 +14,7 @@ void print_bit_arr(bool *);
 
 int main(int argc, char **argv)
 {
-    int num = 536870912;
+    int num = 268451840;
     int res = reverse_signed_32int(num);
 
     printf("Original Number: %d\n", num);
