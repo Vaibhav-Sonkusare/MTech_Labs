@@ -43,6 +43,8 @@ void hammingEncode(char *data, char *encoded) {
     }
 
     // Build encoded string
+    encoded = calloc(n + 1, sizeof(char));
+    if (!encoded) { perror("calloc"); exit(1); }
     for (int i = 1; i <= n; i++)
         encoded[i - 1] = code[i] + '0';
     encoded[n] = '\0';
@@ -58,10 +60,10 @@ int main(int argc, char *argv[]) {
     printf("Enter binary message: ");
     scanf("%s", msg);
 
-    char encoded[BUF_SIZE - HEADER_SIZE];
+    char *encoded;
     hammingEncode(msg, encoded);
 
-    printf("Sender: Original=%s Encoded=%s\n", msg, encoded);
+    printf("Sender:\n\tOriginal=%s\n\tEncoded=%s\n", msg, encoded);
 
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in servaddr;
@@ -71,16 +73,19 @@ int main(int argc, char *argv[]) {
     connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr));
 
     char buffer[BUF_SIZE];
+    memset(buffer, '\0', BUF_SIZE);
     sprintf(buffer, "LEN=%ld|%s", strlen(msg), encoded);
-    send(sockfd, buffer, strlen(buffer), 0);
+    send(sockfd, buffer, BUF_SIZE, 0);
     printf("Sender: Sent packet: %s\n", buffer);
 
     // Wait for ACK
+    memset(buffer, '\0', BUF_SIZE);
     int n = read(sockfd, buffer, BUF_SIZE);
     buffer[n] = '\0';
     printf("Sender: Got ACK = %s\n", buffer);
 
     close(sockfd);
+    free(encoded);
     return 0;
 }
 
