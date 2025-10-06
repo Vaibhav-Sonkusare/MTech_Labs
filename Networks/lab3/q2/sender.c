@@ -1,86 +1,101 @@
+// sender.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 
-#define BUF_SIZE 2048
-#define HEADER_SIZE 32
+#define PORT 8080
+#define MAX 1024
 
-// Compute number of parity bits required
-int calcParityBits(int m) {
-    int r = 0;
-    while ((1 << r) < (m + r + 1)) r++;
-    return r;
-}
+// Function to insert parity bits (Hamming code)
+void create_hamming_packet(char *data, int m_len, char *packet) {
+    int r = 0; // number of parity bits
+    while ((1 << r) < (m_len + r + 1)) r++;  // calculate parity bits count
 
-// Encode arbitrary length binary message using Hamming code
-void hammingEncode(char *data, char *encoded) {
-    int m = strlen(data);
-    int r = calcParityBits(m);
-    int n = m + r;
-
-    int code[n + 1]; // 1-based index
+    int n = m_len + r;  // total length of packet
     int j = 0;
-
-    // Place data bits & leave parity slots blank
     for (int i = 1; i <= n; i++) {
-        if ((i & (i - 1)) == 0) {
-            code[i] = 0; // parity placeholder
+        if ((i & (i - 1)) == 0) { // power of 2 → parity bit
+            packet[i] = '0'; // placeholder
         } else {
-            code[i] = data[j++] - '0';
+            packet[i] = data[j++];
         }
     }
 
-    // Calculate parity bits
+    // Compute parity bits
     for (int i = 0; i < r; i++) {
         int pos = 1 << i;
         int parity = 0;
         for (int k = 1; k <= n; k++) {
-            if (k & pos) parity ^= code[k];
+            if (k & pos) {
+                parity ^= (packet[k] - '0');
+            }
         }
-        code[pos] = parity;
+        packet[pos] = parity + '0';
     }
-
-    // Build encoded string
-    for (int i = 1; i <= n; i++)
-        encoded[i - 1] = code[i] + '0';
-    encoded[n] = '\0';
+    packet[n+1] = '\0'; // null terminate
 }
 
-int main(int argc, char *argv[]) {
-    if (argc != 3) {
-        printf("Usage: %s <server_ip> <port>\n", argv[0]);
-        exit(1);
+int main() {
+    int sock;
+    struct sockaddr_in serv_addr;
+    char buffer[MAX], packet[50];
+    char msg[50];
+    int msg_len;
+
+    // --- Connect to server ---
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock < 0) {
+        perror("Socket creation error");
+        exit(EXIT_FAILURE);
     }
 
-    char msg[BUF_SIZE - HEADER_SIZE];
-    printf("Enter binary message: ");
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(PORT);
+    serv_addr.sin_addr.s_addr = INADDR_ANY;
+
+    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+        perror("Connection Failed");
+        exit(EXIT_FAILURE);
+    }
+    
+    // --- Get user input ---
+    printf("Enter message length: ");
+    scanf("%d", &msg_len);
+
+    if (msg_len <= 0 || msg_len >= 50) {
+        printf("Invalid message length!\n");
+        return 1;
+    }
+
+    printf("Enter message bits (length %d): ", msg_len);
     scanf("%s", msg);
 
-    char encoded[BUF_SIZE - HEADER_SIZE];
-    hammingEncode(msg, encoded);
+    if (strlen(msg) != msg_len) {
+        printf("Message length does not match input length!\n");
+        return 1;
+    }
 
-    printf("Sender: Original=%s Encoded=%s\n", msg, encoded);
+    // --- Build Hamming packet ---
+    create_hamming_packet(msg, msg_len, packet);
 
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    struct sockaddr_in servaddr;
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(atoi(argv[2]));
-    inet_pton(AF_INET, argv[1], &servaddr.sin_addr);
-    connect(sockfd, (struct sockaddr*)&servaddr, sizeof(servaddr));
 
-    char buffer[BUF_SIZE];
-    sprintf(buffer, "LEN=%ld|%s", strlen(msg), encoded);
-    send(sockfd, buffer, strlen(buffer), 0);
-    printf("Sender: Sent packet: %s\n", buffer);
+    while (1) {    // --- Send packet ---
+        sprintf(buffer, "LEN:%d MSG:%s", msg_len, packet+1); // +1 because Hamming uses 1-based indexing
+        printf("Sender sending: %s\n", buffer);
+        write(sock, buffer, strlen(buffer));
 
-    // Wait for ACK
-    int n = read(sockfd, buffer, BUF_SIZE);
-    buffer[n] = '\0';
-    printf("Sender: Got ACK = %s\n", buffer);
+        // --- Wait for ACK ---
+        memset(buffer, 0, MAX);
+        read(sock, buffer, MAX);
+        printf("Sender got ACK: %s\n", buffer);
 
-    close(sockfd);
+        if (strncmp(buffer, "Error", 5) != 0) {
+            break;
+        }
+    }
+
+    close(sock);
     return 0;
 }
-

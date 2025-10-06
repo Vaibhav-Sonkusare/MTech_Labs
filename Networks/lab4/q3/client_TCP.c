@@ -2,8 +2,14 @@
 
 #include "../../include/network_utils.h"
 
-int main() {
-    tcp_client = initialize_tcp_client(DEFAULT_IP_ADDRESS, DEFAULT_PORT_NO);
+int main(int argc, char **argv) {
+    if (argc != 3) {
+        fprintf(stderr, "server ip and port not provided!\n");
+        fprintf(stderr, "Usage: %s <SERVER_IP_ADDRESS> <SERVER_PORT>", argv[0]);
+        return -1;
+    }
+
+    tcp_client = initialize_tcp_client(argv[1], atoi(argv[2]));
     if (tcp_client == NULL) {
         return -1;
     }

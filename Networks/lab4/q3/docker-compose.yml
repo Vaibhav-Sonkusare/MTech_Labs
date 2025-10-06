@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+  echo_server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: echo_server
+    ports:
+      - "5000:5000"
+    networks:
+      - echo_net
+
+  echo_client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: echo_client
+    depends_on:
+      - echo_server
+    networks:
+      - echo_net
+
+networks:
+  echo_net:
+    driver: bridge
