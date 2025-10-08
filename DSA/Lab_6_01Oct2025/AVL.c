@@ -274,11 +274,11 @@ struct data_node *create_data_node(char *word, char *meaning, char *dummy_str) {
 
     new_data_node->word = calloc(MAX_WORD_LEN, sizeof(char));
     new_data_node->meaning = calloc(MAX_MEANING_LEN, sizeof(char));
-    new_data_node->dummy_str = calloc(MAX_DUMMY_STR_LEN, sizeof(char));
+    new_data_node->dummy_str = calloc(MAX_POS_LEN, sizeof(char));
 
     strncpy(new_data_node->word, word, MAX_WORD_LEN - 1);
     strncpy(new_data_node->meaning, meaning, MAX_MEANING_LEN - 1);
-    strncpy(new_data_node->dummy_str, dummy_str, MAX_DUMMY_STR_LEN - 1);
+    strncpy(new_data_node->dummy_str, dummy_str, MAX_POS_LEN - 1);
 
     return new_data_node;
 }

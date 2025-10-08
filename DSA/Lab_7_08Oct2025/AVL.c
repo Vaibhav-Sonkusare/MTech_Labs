@@ -4,12 +4,12 @@
 
 #define MAX_WORD_LEN 32
 #define MAX_MEANING_LEN 32
-#define MAX_DUMMY_STR_LEN 32
+#define MAX_POS_LEN 2048
 
 struct data_node {
     char word[MAX_WORD_LEN];
     char meaning[MAX_MEANING_LEN];
-    char dummy_str[MAX_POS_LEN];
+    char parts_of_speach[MAX_POS_LEN];
 };
 
 struct AVL_node {
@@ -26,7 +26,7 @@ int compare_data(const struct data_node *a, const struct data_node *b) {
     return strcmp(a->word, b->word);
 }
 
-struct AVL_node *create_node(const char *word, const char *meaning, const char *dummy) {
+struct AVL_node *create_node(const char *word, const char *meaning, const char *parts_of_speach) {
     struct AVL_node *node = malloc(sizeof(struct AVL_node));
     if (!node) {
         perror("malloc");
@@ -34,13 +34,26 @@ struct AVL_node *create_node(const char *word, const char *meaning, const char *
     }
     strncpy(node->data.word, word, MAX_WORD_LEN - 1);
     strncpy(node->data.meaning, meaning, MAX_MEANING_LEN - 1);
-    strncpy(node->data.dummy_str, dummy, MAX_POS_LEN - 1);
+    strncpy(node->data.parts_of_speach, parts_of_speach, MAX_POS_LEN - 1);
     node->data.word[MAX_WORD_LEN - 1] = '\0';
     node->data.meaning[MAX_MEANING_LEN - 1] = '\0';
-    node->data.dummy_str[MAX_POS_LEN - 1] = '\0';
+    node->data.parts_of_speach[MAX_POS_LEN - 1] = '\0';
     node->left = node->right = NULL;
     node->height = 1;
     return node;
+}
+
+void *append_node(struct AVL_node *node, const char *new_pos) {
+    size_t curr_pos_len = strlen(node->data.parts_of_speach);
+    if (curr_pos_len >= MAX_POS_LEN - MAX_WORD_LEN) {
+        printf("Overflow!\n");
+        return node;
+    }
+
+    char *seperator = ", ";
+    strncpy(node->data.parts_of_speach + curr_pos_len, seperator, strlen(seperator));
+    curr_pos_len += strlen(seperator);
+    strncpy(node->data.parts_of_speach + curr_pos_len, new_pos, MAX_WORD_LEN);
 }
 
 /* Rotations */
@@ -70,20 +83,21 @@ int get_balance(struct AVL_node *n) {
 }
 
 /* Insertion */
-struct AVL_node *insert(struct AVL_node *node, const char *word, const char *meaning, const char *dummy) {
+struct AVL_node *insert(struct AVL_node *node, const char *word, const char *meaning, const char *pos) {
     if (node == NULL)
-        return create_node(word, meaning, dummy);
+        return create_node(word, meaning, pos);
 
     struct data_node temp;
     strncpy(temp.word, word, MAX_WORD_LEN - 1);
     temp.word[MAX_WORD_LEN - 1] = '\0';
 
     if (strcmp(word, node->data.word) < 0) {
-        node->left = insert(node->left, word, meaning, dummy);
+        node->left = insert(node->left, word, meaning, pos);
     } else if (strcmp(word, node->data.word) > 0) {
-        node->right = insert(node->right, word, meaning, dummy);
+        node->right = insert(node->right, word, meaning, pos);
     } else {
-        return node; // duplicate keys not allowed
+        append_node(node, pos);
+        return node;
     }
 
     node->height = 1 + max(height(node->left), height(node->right));
@@ -175,8 +189,37 @@ struct AVL_node *search(struct AVL_node *root, const char *word) {
 void inorder(struct AVL_node *root) {
     if (!root) return;
     inorder(root->left);
-    printf("%s: %s\n", root->data.word, root->data.meaning);
+    printf("word:%s, meaning:%s, pos:%s\n", root->data.word, root->data.meaning, root->data.parts_of_speach);
     inorder(root->right);
+}
+
+// Function to get the height of the tree
+int _height(struct AVL_node* root) {
+    if (root == NULL) return 0;
+    int leftHeight = height(root->left);
+    int rightHeight = height(root->right);
+    return max(leftHeight,rightHeight) + 1;
+}
+
+void printGivenLevel(struct AVL_node* root, int level) {
+    if (root == NULL) {
+        printf("NULL\t");
+        return;
+    }
+    if (level == 1) printf("w:%s, m:%s, p:%s\t ", root->data.word, root->data.meaning, root->data.parts_of_speach);
+    else if (level > 1) {
+        printGivenLevel(root->left, level - 1);
+        printGivenLevel(root->right, level - 1);
+    }
+}
+
+// Function for level order traversal of the tree without using a queue
+void levelOrderTraversal(struct AVL_node* root) {
+    int h = _height(root);
+    for (int i = 1; i <= h; i++) {
+        printGivenLevel(root, i);
+        printf("\n");
+    }
 }
 
 /* Free tree */
@@ -187,24 +230,34 @@ void free_tree(struct AVL_node *root) {
     free(root);
 }
 
+void print_2_empty_lines() {
+    printf("\n\n");
+}
+
 /* Main */
 int main() {
     struct AVL_node *root = NULL;
-    root = insert(root, "banana", "fruit", "dummy");
-    root = insert(root, "apple", "fruit", "dummy");
-    root = insert(root, "carrot", "vegetable", "dummy");
+    root = insert(root, "banana", "word", "fruit");
+    root = insert(root, "banana", "word", "make (in hindi)");
+    root = insert(root, "apple", "word", "fruit");
+    root = insert(root, "copy", "word", "notebook");
+    root = insert(root, "copy", "word", "duplicate");
+    root = insert(root, "carrot", "word", "vegetable");
+    root = insert(root, "copy", "word", "cheat");
 
-    printf("Inorder traversal after insertions:\n");
-    inorder(root);
+    printf("Level Order traversal after insertions:\n");
+    levelOrderTraversal(root);
+    print_2_empty_lines();
 
-    struct AVL_node *found = search(root, "banana");
+    struct AVL_node *found = search(root, "copy");
     if (found)
-        printf("Found: %s -> %s\n", found->data.word, found->data.meaning);
+        printf("Found:\tw:%s, m:%s, p:%s\n", found->data.word, found->data.meaning, found->data.parts_of_speach);
 
+    print_2_empty_lines();
     root = delete_node(root, "banana");
 
-    printf("Inorder traversal after deletion of banana:\n");
-    inorder(root);
+    printf("Level Order traversal after deletion of banana:\n");
+    levelOrderTraversal(root);
 
     free_tree(root);
     return 0;
