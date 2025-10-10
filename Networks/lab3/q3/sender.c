@@ -10,13 +10,17 @@
 
 unsigned short checksum(unsigned short *msg, int nwords) {
     unsigned long sum = 0;
+
     for (int i = 0; i < nwords; i++) {
         sum += msg[i];
-        if (sum & 0x10000) { // carry
-            sum = (sum & 0xFFFF) + 1;
-        }
     }
-    return ~sum;
+
+    // Add carries until no carry remains
+    while (sum >> 16) {
+        sum = (sum & 0xFFFF) + (sum >> 16);
+    }
+
+    return (unsigned short)(~sum);
 }
 
 int main() {
@@ -50,6 +54,7 @@ int main() {
     }
 
     unsigned short cs = checksum(msg, n);
+    printf("DEBUG: Calculated checksum = %04x\n", cs);
 
     sprintf(buffer, "DATA:");
     for (int i = 0; i < n; i++) {

@@ -1,0 +1,20 @@
+# Use an Ubuntu base image
+FROM ubuntu:24.04
+
+# Install necessary packages
+RUN apt-get update && apt-get install -y build-essential net-tools iproute2
+
+# Set working directory
+WORKDIR /app
+
+# Copy server files
+COPY echo_server_TCP
+
+# Build the server
+# RUN make echo_server_TCP
+
+# Expose the TCP port (for example, 5000)
+EXPOSE 5000
+
+# Run the server
+# CMD ["./echo_server_TCP"]

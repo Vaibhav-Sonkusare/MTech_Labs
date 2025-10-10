@@ -31,7 +31,7 @@ int main () {
         return -1;
     }
 
-    printf("TCP Echo Server listening on %s:%d\n", DEFAULT_IP_ADDRESS, DEFAULT_PORT_NO);
+    printf("TCP Echo Server listening on %s:%d\n", "0.0.0.0", DEFAULT_PORT_NO);
 
     while (1) {
         printf("\n\nWaiting for client connection...\n");
