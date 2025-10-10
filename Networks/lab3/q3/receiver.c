@@ -19,6 +19,22 @@ unsigned short checksum(unsigned short *msg, int nwords) {
     return ~sum;
 }
 
+unsigned short verify_checksum(unsigned short *msg, int nwords) {
+    unsigned long sum = 0;
+
+    for (int i = 0; i < nwords; i++) {
+        sum += msg[i];
+    }
+
+    // fold carries
+    while (sum >> 16) {
+        sum = (sum & 0xFFFF) + (sum >> 16);
+    }
+
+    return (unsigned short)sum;  // should be 0xFFFF if OK
+}
+
+
 int main() {
     int sock;
     struct sockaddr_in serv_addr;
@@ -60,13 +76,14 @@ int main() {
         token = strtok(NULL, " ");
     }
 
-    unsigned short cs = checksum(msg, count);
+    unsigned short cs = verify_checksum(msg, count);
     char result[50];
     if (cs == 0xFFFF) {
         sprintf(result, "No Error");
     } else {
         sprintf(result, "Error");
     }
+
 
     printf("Receiver sent ACK: %s\n", result);
     write(sock, result, strlen(result));

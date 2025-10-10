@@ -1,5 +1,3 @@
 Vintage Clock|An old wooden clock from 1920|100
 Laptop|Used laptop in good condition|250
-Painting|Oil painting by local artist|75
-Headphones|Noise-cancelling over-ear headphones|50
-Bicycle|Mountain bike with gears|120
+

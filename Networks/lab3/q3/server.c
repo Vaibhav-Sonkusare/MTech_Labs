@@ -8,7 +8,7 @@
 #define PORT 8080
 #define MAX 1024
 
-int main() {
+int main(int argc, char *argv[]) {
     int server_fd, new_socket[3], addrlen, i;
     struct sockaddr_in address;
     char buffer[MAX];
@@ -33,15 +33,28 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    printf("Server ready. Waiting for 3 clients...\n");
+    printf("Server ready. Waiting for clients...\n");
 
-    for (i = 0; i < 3; i++) {
-        new_socket[i] = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen);
-        if (new_socket[i] < 0) {
-            perror("accept");
-            exit(EXIT_FAILURE);
+    if (argc == 1) {
+        // Expect 3 clients: sender, receiver, error_sender
+        for (i = 0; i < 3; i++) {
+            new_socket[i] = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen);
+            if (new_socket[i] < 0) {
+                perror("accept");
+                exit(EXIT_FAILURE);
+            }
+            printf("Client %d connected.\n", i+1);
         }
-        printf("Client %d connected.\n", i+1);
+    } else {
+        // Expect only 2 clients: sender, receiver
+        for (i = 0; i < 2; i++) {
+            new_socket[i] = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen);
+            if (new_socket[i] < 0) {
+                perror("accept");
+                exit(EXIT_FAILURE);
+            }
+            printf("Client %d connected.\n", i+1);
+        }
     }
 
     // Expect sender to send first
@@ -49,18 +62,22 @@ int main() {
     read(new_socket[0], buffer, MAX);
     printf("Server got data from Sender: %s\n", buffer);
 
-    // Send to Error Sender
-    write(new_socket[2], buffer, strlen(buffer));
-    printf("Server forwarded data to Error Sender\n");
+    if (argc == 1) {
+        // Full flow with Error Sender
+        write(new_socket[2], buffer, strlen(buffer));
+        printf("Server forwarded data to Error Sender\n");
 
-    // Get modified data back from Error Sender
-    memset(buffer, 0, MAX);
-    read(new_socket[2], buffer, MAX);
-    printf("Server got modified data: %s\n", buffer);
+        memset(buffer, 0, MAX);
+        read(new_socket[2], buffer, MAX);
+        printf("Server got modified data: %s\n", buffer);
 
-    // Forward modified data to Receiver
-    write(new_socket[1], buffer, strlen(buffer));
-    printf("Server forwarded data to Receiver\n");
+        write(new_socket[1], buffer, strlen(buffer));
+        printf("Server forwarded data to Receiver\n");
+    } else {
+        // Direct flow: Sender -> Receiver
+        write(new_socket[1], buffer, strlen(buffer));
+        printf("Server forwarded data directly to Receiver\n");
+    }
 
     // Get ACK from Receiver
     memset(buffer, 0, MAX);
@@ -74,4 +91,3 @@ int main() {
     close(server_fd);
     return 0;
 }
-

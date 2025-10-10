@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 #include <arpa/inet.h>
 
 #define PORT 8080
@@ -32,12 +33,35 @@ int main() {
     read(sock, buffer, MAX);
     printf("Error Sender got: %s\n", buffer);
 
-    // Introduce error (flip one bit in first word)
-    buffer[5] = (buffer[5] == 'f') ? '0' : 'f'; 
+    // Seed random generator
+    srand(time(NULL));
 
-    printf("Error Sender modified data: %s\n", buffer);
+    // Decide randomly: 50% chance to induce error
+    int induce = rand() % 2;
+
+    if (induce) {
+        // Pick a random index within the message string (excluding null terminator)
+        int len = strlen(buffer);
+        int pos = rand() % len;
+
+        // Flip character (simple change: if hex digit, flip to another)
+        if (buffer[pos] >= '0' && buffer[pos] <= '9') {
+            buffer[pos] = (buffer[pos] == '9') ? '0' : buffer[pos] + 1;
+        } else if (buffer[pos] >= 'a' && buffer[pos] <= 'f') {
+            buffer[pos] = (buffer[pos] == 'f') ? 'a' : buffer[pos] + 1;
+        } else if (buffer[pos] >= 'A' && buffer[pos] <= 'F') {
+            buffer[pos] = (buffer[pos] == 'F') ? 'A' : buffer[pos] + 1;
+        } else {
+            // fallback: toggle case
+            buffer[pos] ^= 0x20;
+        }
+
+        printf("Error induced at position %d. Modified data: %s\n", pos, buffer);
+    } else {
+        printf("No error induced. Data unchanged.\n");
+    }
+
     write(sock, buffer, strlen(buffer));
-
     close(sock);
     return 0;
 }
