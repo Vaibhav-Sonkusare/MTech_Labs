@@ -12,11 +12,11 @@ struct paper
 {
     char *paper_name;
     int question_count;
-    struct question *questions;
+    struct question **questions;
     int current_question;
 };
 
-extern struct paper *read_paper_from_file(char *filename);
+extern struct paper *read_paper_from_file(const char *filename);
 extern void cleanup_paper(struct paper *question_paper);
 
 #endif  //LAB5_PAPER_H

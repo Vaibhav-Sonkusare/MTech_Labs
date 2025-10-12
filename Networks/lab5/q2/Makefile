@@ -5,7 +5,7 @@ SRC_DIR = ../../src
 SERVER_FILES = ./question.c ./paper.c ./server.c
 SERVER_BIN = ./server
 
-CLIENT_FILES = ./client.C
+CLIENT_FILES = ./client.c
 CLIENT_BIN = ./client
 
 .DEFAULT_GOAL := help
@@ -14,10 +14,10 @@ CLIENT_BIN = ./client
 
 server:
 # 	echo "$(CC) $(CFLAGS) $(SERVER_FILES) $(SRC_DIR)/network_utils.c -o $(SERVER_BIN)"
-	$(CC) $(CFLAGS) $(SERVER_FILES) $(SRC_DIR)/network_utils.c -o $(SERVER_BIN)
+	$(CC) $(CFLAGS) $(SERVER_FILES) $(SRC_DIR)/network_utils_v2.c -o $(SERVER_BIN)
 
 client:
-	$(CC) $(CFLAGS) $(CLIENT_FILES) $(SRC_DIR)/network_utils.c -o $(CLIENT_BIN)
+	$(CC) $(CFLAGS) $(CLIENT_FILES) $(SRC_DIR)/network_utils_v2.c -o $(CLIENT_BIN)
 
 all: server client
 

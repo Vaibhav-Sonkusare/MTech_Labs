@@ -14,7 +14,8 @@ struct question {
     int correct_option_index;
 };
 
-extern struct question *create_question(char *description, int options_count, char options[][MAX_QUESTION_OPTION_LEN], int correct_option_index);
+struct question *create_question(const char *description, int options_count, char options[][MAX_QUESTION_OPTION_LEN], int correct_option_index);
+// extern struct question *copy_question(struct question *q1);
 extern void cleanup_question(struct question *ques);
 
 #endif  //LAB5_QUESTIONS_H

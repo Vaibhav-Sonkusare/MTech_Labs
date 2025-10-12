@@ -1,7 +1,9 @@
-#include "../../include/network_utils.h"
+#include "../../include/network_utils_v2.h"
 #include "question.h"
 #include "paper.h"
 #include <dirent.h>     // to list avaialble question papers
+
+#define PAPER_NAME "paper1.txt"
 
 void *handle_client(void *);
 struct paper *choose_question_paper(struct device *client);
@@ -18,6 +20,8 @@ void *handle_client(void *arg) {
     struct device *client = (struct device *) arg;
     int score = 0;
 
+    printf("Client connected with IP: %s\tPort: %d\n", get_client_ip(client), get_client_port(client));
+
     // Ask client for name and registration no
     char *name_buffer = calloc(CLIENT_NAME_LEN, sizeof(char));
     if (name_buffer == NULL) {
@@ -25,14 +29,28 @@ void *handle_client(void *arg) {
         cleanup_client((struct device *) client);
         pthread_exit(NULL);
     }
-    ssize_t bytes_read = receive_message(client, name_buffer, CLIENT_NAME_LEN);
-    if (bytes_read < 0) {
-        perror("handle_client: receive_message failed");
-        free(name_buffer);
-        cleanup_client((struct device *) client);
-        pthread_exit(NULL);
-    } else if (bytes_read == 0) {
-        fprintf(stderr, "handle_client: client disconnected before sending name\n");
+
+    if (message_device_formatted(client, MESSAGE_TYPE_NORMAL, "Enter your name: ") < 0) {
+		perror("message_device_formatted: returned error");
+		
+	}
+    if (message_device_formatted(client, MESSAGE_TYPE_WAITINP, "") < 0) {
+		perror("message_device_formatted: returned error");
+		
+	}
+    uint16_t responce_type;
+    ssize_t bytes_read = receive_message(client, name_buffer, CLIENT_NAME_LEN, &responce_type);
+    if (bytes_read <= 0 || responce_type == MESSAGE_TYPE_CLOSURE || responce_type != MESSAGE_TYPE_NORMAL) {
+        if (bytes_read <0) {
+            fprintf(stderr, "handle_client: receive_message failed\n");
+            fprintf(stderr, "Disconnecting and Closing client\n");
+        } else if (responce_type == MESSAGE_TYPE_CLOSURE) {
+            fprintf(stderr, "Client disconnected successfully\n");
+        } else if (responce_type != MESSAGE_TYPE_NORMAL) {
+            fprintf(stderr, "Invalid responce type %d\n", responce_type);
+            fprintf(stderr, "Disconnecting and Closing client\n");
+        }
+        
         free(name_buffer);
         cleanup_client((struct device *) client);
         pthread_exit(NULL);
@@ -41,52 +59,117 @@ void *handle_client(void *arg) {
     strncpy(client->name, name_buffer, CLIENT_NAME_LEN);
     free(name_buffer);
 
-    char *client_ip_address = get_client_ip(client);
-    int client_port = get_client_port(client);
-    printf("Client on %s:%d is %s", client_ip_address, client_port, client->name);
+    printf("Client on %s:%d is %s\n", get_client_ip(client), get_client_port(client), client->name);
 
     // Server will choose a question paper
-    struct paper *question_paper = choose_question_paper(client);
+    if (message_device_formatted(client, MESSAGE_TYPE_NORMAL, "Wait till paper is selected\n") < 0) {
+		perror("message_device_formatted: returned error");
+		
+	}
+    // struct paper *question_paper = choose_question_paper(client);
+    struct paper *question_paper = read_paper_from_file(PAPER_NAME);
+    if (question_paper == NULL) {
+        perror("choose_question_paper: returned NULL");
+        exit(EXIT_FAILURE);
+    }
+	if (debug > 1) {
+    	printf("question paper selected: %s\n", question_paper->paper_name);
+	}
 
-    message_device_formatted(client, "You will be solving %d paper.\nBest of Luck!\n", question_paper->paper_name);
+    if (message_device_formatted(client, MESSAGE_TYPE_NORMAL, "You will be solving %s paper.\nBest of Luck!\n", question_paper->paper_name) < 0) {
+		perror("message_device_formatted: returned error");
+		
+	}
 
     while (question_paper->current_question < question_paper->question_count) {
-        struct question c_question = question_paper->questions[question_paper->current_question];
+        struct question *c_question = question_paper->questions[question_paper->current_question];
 
-        message_device_formatted(client, "\nQuestion %d/%d.\n", question_paper->current_question + 1, question_paper->question_count);
-        message_device_formatted(client, "Description: %s\n", c_question.description);
-        message_device_formatted(client, "Options:\n");
-        for (int i=0; i< c_question.options_count; i++) {
-            message_device_formatted(client, "%d. %s", (i + 1), c_question.options[i]);
+        if (message_device_formatted(client, MESSAGE_TYPE_NORMAL, "\nQuestion %d/%d.\n", question_paper->current_question + 1, question_paper->question_count) < 0) {
+			perror("message_device_formatted: returned error");
+			
+		}
+        if (message_device_formatted(client, MESSAGE_TYPE_NORMAL, "Description: %s\n", c_question->description) < 0) {
+			perror("message_device_formatted: returned error");
+			
+		}
+        if (message_device_formatted(client, MESSAGE_TYPE_NORMAL, "Options:\n") < 0) {
+			perror("message_device_formatted: returned error");
+			
+		}
+        for (int i=0; i< c_question->options_count; i++) {
+            if (message_device_formatted(client, MESSAGE_TYPE_NORMAL, "%d. %s\n", (i + 1), c_question->options[i]) < 0) {
+				perror("message_device_formatted: returned error");
+				
+			}
         }
 
         int client_option_choice;
         char tmp_buffer[32];
+        uint16_t msg_type;
         do {
-            message_device_formatted(client, "Choose option index (1-%d): ", c_question.options_count);
-            message_device_formatted(client, "#1");
+            if (message_device_formatted(client, MESSAGE_TYPE_NORMAL, "Choose option index (1-%d): ", c_question->options_count) < 0) {
+				perror("message_device_formatted: returned error");
+				
+			}
+            if (message_device_formatted(client, MESSAGE_TYPE_WAITINP, "") < 0) {
+				perror("message_device_formatted: returned error");
+				
+			}
             // get selected option from client
-            receive_message(client, tmp_buffer, sizeof(tmp_buffer));
+            receive_message(client, tmp_buffer, sizeof(tmp_buffer), &msg_type);
+            if (msg_type == MESSAGE_TYPE_CLOSURE) {
+                fprintf(stderr, "Error! Client closed early!\n");
+                client_option_choice = 0;
+                question_paper->current_question = question_paper->question_count;
+                break;
+            } else if (msg_type != MESSAGE_TYPE_NORMAL) {
+                fprintf(stderr, "Error! invalid message from client\n");
+            }
             sscanf(tmp_buffer, " %d", &client_option_choice);
-        } while (client_option_choice < 1 || client_option_choice > c_question.options_count);
+        } while (client_option_choice < 1 || client_option_choice > c_question->options_count);
 
-        if (client_option_choice == c_question.correct_option_index) {
+        if (client_option_choice - 1 == c_question->correct_option_index) {
             score++;
         }
+		if (debug > 1) {
+        	printf("Correct option: %d, your option: %d\n---Score: %d---\n", c_question->correct_option_index, client_option_choice, score);
+		}
 
         question_paper->current_question++;
     }
     
-    message_device_formatted(client, "Exam Completed!\n");
-    if (score > 0) {
-        message_device_formatted(client, "*****You PASSED!*****\n");
-    } else {
-        message_device_formatted(client, "*****You FAILED!*****\n");
-    }
+    if (question_paper->current_question == question_paper->question_count) {
+        if (message_device_formatted(client, MESSAGE_TYPE_NORMAL, "Exam Completed!\n") < 0) {
+			perror("message_device_formatted: returned error");
+			
+		}
+        if (score > 0) {
+            if (message_device_formatted(client, MESSAGE_TYPE_NORMAL, "*****You PASSED!*****\n") < 0) {
+				perror("message_device_formatted: returned error");
+				
+			}
+        } else {
+            if (message_device_formatted(client, MESSAGE_TYPE_NORMAL, "*****You FAILED!*****\n") < 0) {
+				perror("message_device_formatted: returned error");
+				
+			}
+        }
 
-    message_device_formatted(client, "Your Score: %d/%d\n", score, question_paper->question_count);
-    message_device_formatted(client, "Thank you for giving the exam. See you again!\n\n");
-    message_device_formatted(client, "#0");
+        if (message_device_formatted(client, MESSAGE_TYPE_NORMAL, "Your Score: %d/%d\n", score, question_paper->question_count) < 0) {
+			perror("message_device_formatted: returned error");
+			
+		}
+        if (message_device_formatted(client, MESSAGE_TYPE_NORMAL, "Thank you for giving the exam. See you again!\n\n") < 0) {
+			perror("message_device_formatted: returned error");
+			
+		}
+        if (message_device_formatted(client, MESSAGE_TYPE_CLOSURE, "") < 0) {
+			perror("message_device_formatted: returned error");
+			
+		}
+    } else {
+        printf("Exam incomplete!\n");
+    }
 
     cleanup_paper(question_paper);
     cleanup_client(client);
@@ -98,7 +181,7 @@ struct paper *choose_question_paper(struct device *client) {
     // TODO: lock to prevent multiple clients from selecting paper
 
     // print current client's info
-    printf("Requesting paper for client: %s", client->name);
+    printf("Requesting paper for client: %s\n", client->name);
 
     // selected paper name
     char paper_name[256];
@@ -108,16 +191,17 @@ struct paper *choose_question_paper(struct device *client) {
     DIR *dir = opendir(directory_path);
     if (dir == NULL) {
         perror("choose_question_paper: Error listing paper");
-        fprintf(stderr, "Choosing Default paper (%s/%s)", directory_path, paper_name);
+        fprintf(stderr, "Choosing Default paper (%s/%s)\n", directory_path, paper_name);
     }
 
     struct dirent *entry;
 
-    printf("Available papers are:");
+    printf("Available papers are:\n");
     
     // read and print available papers
     int count = 0;
     while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
         printf("%d. %s\n", ++count, entry->d_name);
     }
 
@@ -125,7 +209,9 @@ struct paper *choose_question_paper(struct device *client) {
     printf("Selected paper (default paper: %s): ", paper_name);
 
     // if choosing default paper
-    scanf("[^\n]%s", paper_name);
+    // scanf("[^\n]%s", paper_name);
+    fgets(paper_name, sizeof(paper_name), stdin);
+    paper_name[strcspn(paper_name, "\n")] = '\0';
     if (strncmp(paper_name, "", sizeof(paper_name)) == 0) {
         strncpy(paper_name, "default_paper.txt", sizeof(paper_name));
     }

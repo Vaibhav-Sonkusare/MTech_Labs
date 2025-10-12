@@ -27,6 +27,10 @@ int main(int argc, char **argv) {
         return 2;
     }
 
+    // Print question paper name to paper
+    file_name[strcspn(file_name, ".")] = '\0';
+    fprintf(paper, "%s\n", file_name);
+
     int question_count;
     printf("Enter the number of questions: ");
     scanf(" %d", &question_count);
