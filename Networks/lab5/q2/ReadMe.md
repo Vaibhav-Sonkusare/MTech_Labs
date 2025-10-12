@@ -1,0 +1,1 @@
+Create a TCP client-server application that conducts a quiz. The server will present questions to clients, collect their answers, and return the score.

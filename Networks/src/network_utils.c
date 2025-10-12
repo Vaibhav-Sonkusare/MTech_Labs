@@ -322,3 +322,8 @@ extern void handle_signal(int sig) {
     }
     exit(EXIT_SUCCESS);
 }
+
+// Other extra Utitility Functions
+int max(int a, int b) {
+    return (a > b) ? a : b;
+}
