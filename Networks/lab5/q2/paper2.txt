@@ -1,0 +1,26 @@
+paper2
+4
+What is 3 + 7?
+5
+3
+7
+10
+4
+None of these
+3
+Sun rises from:
+3
+East
+West
+The ends of earth, from hell
+1
+The auther's name is ____?
+2
+Vaibhav Bhojraj Sonkusare
+I don't know!
+1
+Do you know your name?
+2
+Yes
+No
+1

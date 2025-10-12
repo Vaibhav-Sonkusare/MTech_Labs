@@ -1,117 +1,116 @@
-// paper.c
-
 #include "paper.h"
-#include "../../include/network_utils.h"
+#include "../../include/network_utils_v2.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
-extern struct paper *read_paper_from_file(char *filename) {
-    FILE *paper = fopen(filename, "r");
-    if (paper == NULL) {
+struct paper *read_paper_from_file(const char *filename) {
+    FILE *fp = fopen(filename, "r");
+    if (!fp) {
+        perror("read_paper_from_file: fopen");
         return NULL;
     }
 
-    struct paper *new_paper = calloc(1, sizeof(struct paper));
-    if (new_paper == NULL) {
-        cleanup_paper(new_paper);
-        fclose(paper);
+    struct paper *p = calloc(1, sizeof(struct paper));
+    if (!p) {
+        perror("read_paper_from_file: calloc on paper");
+        fclose(fp);
         return NULL;
     }
 
-    // Auxiliary buffers and variables
-    int buffer_size = (max(MAX_QUESTION_DESCRIPTION_LEN, MAX_QUESTION_OPTION_LEN) + 2) * sizeof(char);
-    char buffer[buffer_size];
-    char description[MAX_QUESTION_DESCRIPTION_LEN + 1];
-    int options_count;
-    char options[MAX_OPTION_COUNT][MAX_QUESTION_OPTION_LEN];
-    int correct_option_index;
-
-    // allocate memory and read paper name
-    new_paper->paper_name = calloc(MAX_PAPER_NAME_LEN, sizeof(char));
-    if (new_paper->paper_name == NULL) {
-        cleanup_paper(new_paper);
-        fclose(paper);
+    // Read paper name
+    p->paper_name = calloc(MAX_PAPER_NAME_LEN, 1);
+    if (!p->paper_name) {
+        perror("read_paper_from_file: calloc on paper_name");
+        cleanup_paper(p);
+        fclose(fp);
         return NULL;
     }
-    memset(buffer, '\0', buffer_size);
-    fgets(buffer, MAX_PAPER_NAME_LEN, paper);
-    sscanf(buffer, "%s", new_paper->paper_name);
+    if (!fgets(p->paper_name, MAX_PAPER_NAME_LEN, fp)) {
+        perror("read_paper_from_file: fgets on paper_name");
+        cleanup_paper(p);
+        fclose(fp);
+        return NULL;
+    }
+	if (debug > 1) {
+    	fprintf(stderr, "fgets:%s^^^\n", p->paper_name);
+	}
+    p->paper_name[strcspn(p->paper_name, "\n")] = '\0';
 
     // Read question count
-    memset(buffer, '\0', buffer_size);
-    fgets(buffer, MAX_QUESTION_COUNT, paper);
-    sscanf(buffer, "%d", &new_paper->question_count);
-
-    if (new_paper->question_count <= 0 || new_paper->question_count > MAX_QUESTION_COUNT) {
-        // fprintf(stderr, "Invalid question count: %d\n", new_paper->question_count);
-        cleanup_paper(new_paper);
-        fclose(paper);
+    char buffer[128];
+    if (!fgets(buffer, sizeof(buffer), fp)) {
+        perror("read_paper_from_file: fgets on question_count");
+        cleanup_paper(p);
+        fclose(fp);
+        return NULL;
+    }
+	if (debug > 1) {
+    	fprintf(stderr, "fgets:%s^^^\n", buffer);
+	}
+    sscanf(buffer, " %d", &p->question_count);
+    if (p->question_count <= 0 || p->question_count > MAX_QUESTION_COUNT) {
+        perror("read_paper_from_file: sscanf on question_count");
+		if (debug > 1) {
+        	fprintf(stderr, "buffer:^^^\n");
+		}
+        cleanup_paper(p);
+        fclose(fp);
         return NULL;
     }
 
-    new_paper->questions = calloc(new_paper->question_count, sizeof(struct question));
-    if (new_paper->questions == NULL) {
-        cleanup_paper(new_paper);
-        fclose(paper);
+    p->questions = calloc(p->question_count, sizeof(struct question *));
+    if (!p->questions) {
+        perror("read_paper_from_file: calloc on questions");
+        cleanup_paper(p);
+        fclose(fp);
         return NULL;
     }
 
-    new_paper->current_question = 0;
+    p->current_question = 0;
 
-    for (int i=0; i< new_paper->question_count; i++) {
-        // Read question description
-        memset(buffer, '\0', buffer_size);
-        fgets(buffer, MAX_QUESTION_DESCRIPTION_LEN + 1, paper);
-        sscanf(buffer, "%[^\n]", description);
+    for (int i = 0; i < p->question_count; i++) {
+        char description[MAX_QUESTION_DESCRIPTION_LEN];
+        if (!fgets(description, sizeof(description), fp)) break;
+        description[strcspn(description, "\n")] = '\0';
 
         // Read options count
-        memset(buffer, '\0', buffer_size);
-        fgets(buffer, MAX_OPTION_COUNT, paper);
+        int options_count;
+        if (!fgets(buffer, sizeof(buffer), fp)) break;
         sscanf(buffer, "%d", &options_count);
+        if (options_count < 2 || options_count > MAX_OPTION_COUNT) break;
 
-        if (options_count <= 1 || options_count > MAX_OPTION_COUNT) {
-            // fprintf(stderr, "Invalid options count: %d\n", options_count);
-            break;
+        char options[MAX_OPTION_COUNT][MAX_QUESTION_OPTION_LEN];
+        for (int j = 0; j < options_count; j++) {
+            if (!fgets(options[j], sizeof(options[j]), fp)) break;
+            options[j][strcspn(options[j], "\n")] = '\0';
         }
 
-        // Read options
-        for (int j=0; j< options_count; j++) {
-            memset(buffer, '\0', buffer_size);
-            fgets(buffer, MAX_QUESTION_OPTION_LEN + 1, paper);
-            memset(options[j], '\0', MAX_QUESTION_OPTION_LEN);
-            sscanf(buffer, "%[^\n]", options[j]);
-        }
-
-        // Read correct option index
-        memset(buffer, '\0', buffer_size);
-        fgets(buffer, MAX_OPTION_COUNT, paper);
+        // Read correct option index (1-based in file)
+        int correct_option_index;
+        if (!fgets(buffer, sizeof(buffer), fp)) break;
         sscanf(buffer, "%d", &correct_option_index);
+        if (correct_option_index < 1 || correct_option_index > options_count) break;
+        correct_option_index -= 1; // convert to 0-based
 
-        if (correct_option_index < 1 || correct_option_index > options_count) {
-            // fprintf(stderr, "Invalid correct option index: %d\n", correct_option_index);
-            break;
-        }
-    
-        // Create question and add to paper
-        struct question *question = create_question(description, options_count, options, correct_option_index);
-        if (question == NULL) {
-            break;
-        }
-        new_paper->questions[i] = *question;
+        struct question *q = create_question(description, options_count, options, correct_option_index);
+        if (!q) break;
+
+        p->questions[i] = q;
     }
 
-    fclose(paper);
-    cleanup_paper(new_paper);
-    return new_paper;
+    fclose(fp);
+    return p;
 }
 
-extern void cleanup_paper(struct paper *question_paper) {
-    if (question_paper != NULL) {
-        free(question_paper->paper_name);
-        if (question_paper->questions != NULL) {
-            for (int i=0; i< question_paper->question_count; i++) {
-                cleanup_question(&(question_paper->questions[i]));
-            }
-            free(question_paper->questions);
+void cleanup_paper(struct paper *p) {
+    if (!p) return;
+    free(p->paper_name);
+    if (p->questions) {
+        for (int i = 0; i < p->question_count; i++) {
+            cleanup_question(p->questions[i]);
         }
-        free(question_paper);
+        free(p->questions);
     }
+    free(p);
 }

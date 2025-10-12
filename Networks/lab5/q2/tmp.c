@@ -1,7 +1,5 @@
-// question.c
-
 #include "question.h"
-#include "../../include/network_utils_v2.h"
+#include "../../include/network_utils.h"
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
@@ -44,3 +42,4 @@ void cleanup_question(struct question *q) {
     }
     free(q);
 }
+

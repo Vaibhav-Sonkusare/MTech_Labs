@@ -1,6 +1,6 @@
 // network_utils.c
 
-#include "../include/network_utils.h"
+#include "../include/network_utils_v2.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -18,6 +18,7 @@ pthread_rwlock_t device_list_lock;
 struct device *device_list_head = NULL;
 struct device *tcp_server = NULL;
 struct device *tcp_client = NULL;
+int debug = 0;
 
 // Initializers
 extern struct device *initialize_tcp_server(const char *ip_address, int port) {    
@@ -211,26 +212,39 @@ extern int concurrently_handle_clients_with_handler(void *(*__start_routine)(voi
 }
 
 // Sending Messages
-extern void message_device(struct device *client, const char *message_bufffer) {
-    if (client == NULL || message_bufffer == NULL) {
-        fprintf(stderr, "message_device: client or message_buffer is NULL\n");
-        return;
+extern int message_device(struct device *client, uint16_t type, const char *payload, size_t payload_size) {
+    if (client == NULL) {
+        errno = EINVAL;
+        return -EINVAL;
     }
 
-    char buffer[BUFFER_SIZE];
-    int n = snprintf(buffer, BUFFER_SIZE, "%s\n", message_bufffer);
-    if (n < 0 || n >= BUFFER_SIZE) {
-        fprintf(stderr, "message_device: message too long\n");
-        return;
+    struct MessageHeader header;
+    header.type = htons(type);
+    header.length = payload_size;
+
+    // send header
+    int ret_val = send(client->fd, &header, sizeof(header), 0);
+    if (ret_val < 0) {
+        return ret_val;
     }
 
-    ssize_t bytes_sent = send(client->fd, buffer, (size_t)n, 0);
-    if (bytes_sent == -1) {
-        perror("message_device: send failed");
+    // send payload if any
+	if (debug > 2) {
+    	fprintf(stderr, "payload = %s^^^%ld^^\n", payload, payload_size);
+	}
+    if (payload && payload_size > 0) {
+        char buffer[BUFFER_SIZE];
+        strncpy(buffer, payload, BUFFER_SIZE);
+        ret_val = send(client->fd, buffer, BUFFER_SIZE, 0);
+        if (ret_val < 0) {
+            return ret_val;
+        }
     }
+
+    return ret_val;
 }
 
-extern void message_device_fd(int client_fd, const char *message_buffer) {
+extern void depriciated_message_device_fd(int client_fd, const char *message_buffer) {
     if (client_fd < 0 || message_buffer == NULL) {
         fprintf(stderr, "message_device_fd: invalid client_fd or message_buffer is NULL\n");
         return;
@@ -248,7 +262,7 @@ extern void message_device_fd(int client_fd, const char *message_buffer) {
         perror("message_device_fd: send failed");
     }
 }
-extern void broadcast_message(const char *message) {
+extern void broadcast_message(const char *message, uint16_t type) {
     if (message == NULL) {
         fprintf(stderr, "broadcast_message: message is NULL\n");
         return;
@@ -257,13 +271,13 @@ extern void broadcast_message(const char *message) {
     pthread_rwlock_rdlock(&device_list_lock);
     struct device *itr = device_list_head;
     while (itr != NULL) {
-        message_device(itr, message);
+        message_device_formatted(itr, type, message);
         itr = itr->next;
     }
     pthread_rwlock_unlock(&device_list_lock);
 }
 
-extern void message_device_formatted(struct device *client, const char *fmt, ...) {
+extern int message_device_formatted(struct device *client, uint16_t type, const char *fmt, ...) {
     char buffer[BUFFER_SIZE];
 
     va_list args;
@@ -273,41 +287,53 @@ extern void message_device_formatted(struct device *client, const char *fmt, ...
 
     if (n < 0) {
         errno = EILSEQ;     // Illegal byte sequence (common choice for encoding errors)
-        return;
+        return -EILSEQ;
     }
     if (n >= BUFFER_SIZE) {
         errno = EMSGSIZE;   // Message too long
-        return;
+        return -EMSGSIZE;
     }
 
-    message_device(client, buffer);
+    return message_device(client, type, buffer, n);
 }
 
 // Get message from client
-extern ssize_t receive_message(struct device *client, char *buffer, size_t size) {
-    if (client == NULL || buffer == NULL || size <= 0) {
+extern ssize_t receive_message(struct device *client, char *payload, size_t size, uint16_t *type) {
+    if (client == NULL || payload == NULL || size <= 0) {
         errno = EINVAL;
         return -1;
     }
 
-    char recv_buffer[BUFFER_SIZE];
-    memset(recv_buffer, '\0', sizeof(recv_buffer));
-    ssize_t bytes_received = recv(client->fd, recv_buffer, sizeof(recv_buffer) - 1, 0);
-    if (bytes_received == -1) {
-        return -2; // recv sets errno
-    } else if (bytes_received == 0) {
-        return 0; // connection closed
-    } else {
-        recv_buffer[bytes_received] = '\0';
-        // recv_buffer[strcspn(recv_buffer, "\n")] = '\0'; // Remove newline if present
-        // Copy to user buffer
-        memset(buffer, '\0', size);
-        size_t to_copy = (size_t)bytes_received < size - 1 ? (size_t)bytes_received : size - 1;
-        strncpy(buffer, recv_buffer, to_copy);
-        buffer[to_copy] = '\0'; // Null-terminate
-        return (ssize_t)to_copy;
+    struct MessageHeader header;
+    ssize_t header_bytes = recv(client->fd, &header, sizeof(header), 0);
+    if (header_bytes <= 0) {
+        return header_bytes;
     }
-    return -3; // should not reach here
+
+    *type = ntohs(header.type);
+    uint16_t lenght = ntohs(header.length);
+
+    if (lenght >= size) {
+        lenght = size - 1;
+    }
+
+    memset(payload, '\0', size);
+    if (lenght > 0) {
+        char buffer[BUFFER_SIZE];
+        ssize_t bytes_received = recv(client->fd, buffer, BUFFER_SIZE, 0);
+        if (bytes_received <= 0) {
+            return bytes_received;
+        }
+        
+        strncpy(payload, buffer, lenght);
+        payload[bytes_received] = '\0';
+		if (debug > 2) {
+        	fprintf(stderr, "%s", payload);
+		}
+        return bytes_received;
+    } else {
+        return lenght;
+    }
 }
 
 // Device Management

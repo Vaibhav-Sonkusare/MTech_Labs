@@ -11,6 +11,13 @@
 #define BUFFER_SIZE 1024
 #define CLIENT_NAME_LEN 256
 
+// Message Header control info
+#define MESSAGE_TYPE_NORMAL  1
+#define MESSAGE_TYPE_CLOSURE 2
+#define MESSAGE_TYPE_ACK     3
+#define MESSAGE_TYPE_PING    4
+#define MESSAGE_TYPE_WAITINP 5
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -30,6 +37,11 @@ struct device {
    struct device *next;
 };
 
+struct MessageHeader {
+   uint16_t type;          // Defined above in Message Header control info
+   uint16_t length;        // payload length
+} __attribute__((packed));
+
 // Function Prototypes
 
 // Initializers
@@ -43,13 +55,13 @@ extern void initialize_signal_handler();
 extern int concurrently_handle_clients_with_handler(void *(*__start_routine)(void *), int log_level);
 
 // Sending Messages
-extern void message_device(struct device *client, const char *message_bufffer);
-extern void message_device_fd(int client_fd, const char *message_buffer);
-extern void broadcast_message(const char *message);
-extern void message_device_formatted(struct device *client, const char *fmt, ...);
+extern int message_device(struct device *client, uint16_t type, const char *payload, size_t payload_size);
+extern void depriciated_message_device_fd(int client_fd, const char *message_buffer);
+extern void broadcast_message(const char *message, uint16_t type);
+extern int message_device_formatted(struct device *client, uint16_t type, const char *fmt, ...);
 
 // Get message from device
-extern ssize_t receive_message(struct device *client, char *buffer, size_t size);
+extern ssize_t receive_message(struct device *client, char *buffer, size_t size, uint16_t *type);
 
 // Device Management
 extern struct device *get_device_from_fd(int fd);
@@ -72,6 +84,7 @@ extern pthread_rwlock_t device_list_lock;
 extern struct device *device_list_head;
 extern struct device *tcp_server;
 extern struct device *tcp_client;
+extern int debug;
 
 #endif
 

@@ -1,4 +1,4 @@
-paper_1
+paper1.txt
 3
 Is this the first question?
 2
