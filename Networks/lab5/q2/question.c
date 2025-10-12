@@ -4,7 +4,7 @@
 #include "../../include/network_utils.h"
 #include <errno.h>
 
-struct Question *create_question(char *description, int options_count, char **options, int correct_option_index) {
+extern struct question *create_question(char *description, int options_count, char options[][MAX_QUESTION_OPTION_LEN], int correct_option_index) {
     // Check parameters
     if ((description == NULL) || (options_count <= 1 || options_count > MAX_OPTION_COUNT) || (options == NULL) || (correct_option_index < 0 || correct_option_index >= options_count)) {
         errno = EINVAL;         // set errno to Invalid Parameters
@@ -12,15 +12,16 @@ struct Question *create_question(char *description, int options_count, char **op
     }
 
     // allocate memory
-    struct Question *new_question = malloc(sizeof(struct Question));
+    struct question *new_question = calloc(1, sizeof(struct question));
     if (new_question == NULL) {
-        return;
+        return NULL;
     }
 
     // process struct members
     new_question->description = calloc(MAX_QUESTION_DESCRIPTION_LEN, sizeof(char));
     if (new_question->description == NULL) {
-        return;
+        cleanup_question(new_question);
+        return NULL;
     }
     strncpy(new_question->description, description, MAX_QUESTION_DESCRIPTION_LEN);
 
@@ -28,12 +29,14 @@ struct Question *create_question(char *description, int options_count, char **op
 
     new_question->options = calloc(options_count, sizeof(char *));
     if (new_question->options == NULL) {
-        return;
+        cleanup_question(new_question);
+        return NULL;
     }
     for (int i=0; i< options_count; i++) {
         new_question->options[i] = calloc(MAX_QUESTION_OPTION_LEN, sizeof(char));
         if (new_question->options[i] == NULL) {
-            return;
+            cleanup_question(new_question);
+            return NULL;
         }
 
         strncpy(new_question->options[i], options[i], MAX_QUESTION_OPTION_LEN);
@@ -42,4 +45,17 @@ struct Question *create_question(char *description, int options_count, char **op
     new_question->correct_option_index = correct_option_index;
 
     return new_question;
+}
+
+extern void cleanup_question(struct question *ques) {
+    if (ques != NULL) {
+        free(ques->description);
+        if (ques != NULL) {   
+            for (int i=0; i< max(ques->options_count, MAX_OPTION_COUNT); i++) {
+                free(ques->options[i]);
+            }
+            free(ques->options);
+        }
+        free(ques);
+    }
 }

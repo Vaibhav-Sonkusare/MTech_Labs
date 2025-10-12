@@ -7,13 +7,14 @@
 #define MAX_QUESTION_OPTION_LEN 512
 #define MAX_OPTION_COUNT 6
 
-struct Question {
+struct question {
     char *description;
     int options_count;
     char **options;
     int correct_option_index;
 };
 
-struct Question *create_question(char *description, int options_count, char **options, int correct_option_index);
+extern struct question *create_question(char *description, int options_count, char options[][MAX_QUESTION_OPTION_LEN], int correct_option_index);
+extern void cleanup_question(struct question *ques);
 
 #endif  //LAB5_QUESTIONS_H
