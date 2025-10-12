@@ -52,6 +52,8 @@ extern void cleanup_server(struct device *server);
 extern void cleanup_all_clients();
 extern void handle_signal(int sig);
 
+// Other extra Utitility Functions
+int max(int a, int b);
 
 // Global Variables
 extern pthread_rwlock_t device_list_lock;
