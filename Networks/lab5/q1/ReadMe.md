@@ -1,0 +1,1 @@
+Send a C structure that includes data of type character, integer and float from client1 to  the server. The server should change the values so that client2 receives a structure with  entirely different data. It is not permitted that the data should be converted to any other data type before transmission.
