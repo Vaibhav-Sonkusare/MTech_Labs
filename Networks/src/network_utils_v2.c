@@ -297,6 +297,39 @@ extern int message_device_formatted(struct device *client, uint16_t type, const 
     return message_device(client, type, buffer, n);
 }
 
+extern int message_device_custom_struct(struct device *client, uint16_t type, void *custom_struct, size_t size_custom_struct) {
+    if (client == NULL) {
+        errno = EINVAL;
+        return -EINVAL;
+    }
+
+    struct MessageHeader header;
+    header.type = htons(type);
+    header.length = size_custom_struct;
+
+    // send header
+    int ret_val = send(client->fd, &header, sizeof(header), 0);
+    if (ret_val < 0) {
+        return ret_val;
+    }
+
+    // send payload if any
+	if (debug > 2) {
+    	fprintf(stderr, "size_custom_struct = %ld^^\n", size_custom_struct);
+	}
+    if (custom_struct != NULL && size_custom_struct > 0) {
+        ret_val = send(client->fd, custom_struct, size_custom_struct, 0);
+        if (ret_val < 0) {
+            if (debug > 2) {
+                perror("message_device_custom_struct: unable to send custom_struct");
+            }
+            return ret_val;
+        }
+    }
+
+    return ret_val;
+}
+
 // Get message from client
 extern ssize_t receive_message(struct device *client, char *payload, size_t size, uint16_t *type) {
     if (client == NULL || payload == NULL || size <= 0) {
@@ -334,6 +367,36 @@ extern ssize_t receive_message(struct device *client, char *payload, size_t size
     } else {
         return lenght;
     }
+}
+
+extern ssize_t receive_custom_struct(struct device *client, uint16_t *type, void *custom_struct, size_t size_custom_struct) {
+    if (client == NULL || size_custom_struct <= 0) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    struct MessageHeader header;
+    ssize_t header_bytes = recv(client->fd, &header, sizeof(header), 0);
+    if (header_bytes <= 0) {
+        return header_bytes;
+    }
+
+    *type = ntohs(header.type);
+    uint16_t lenght = ntohs(header.length);
+
+    if (lenght != size_custom_struct) {
+        fprintf(stderr, "Invalid input size!\n");
+        return lenght;
+    }
+
+    ssize_t bytes_received = recv(client->fd, custom_struct, size_custom_struct, 0);
+    if (bytes_received <= 0) {
+        if (debug > 2) {
+            perror("receive_custom_struct: recv error!");
+        }
+        return bytes_received;
+    }
+    return bytes_received;
 }
 
 // Device Management
