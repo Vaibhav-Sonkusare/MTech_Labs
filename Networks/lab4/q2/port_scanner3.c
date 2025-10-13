@@ -125,6 +125,7 @@ static ssize_t grab_banner(int sockfd, int recv_timeout_ms, char *buf, size_t bu
     }
 
     ssize_t n = recv(sockfd, buf, bufsz, 0);
+    fprintf(stderr, "buffer:%s^^^\n", buf);
     if (n < 0) {
         if (errno == EWOULDBLOCK || errno == EAGAIN || errno == EINTR) {
             return 0;
@@ -200,28 +201,28 @@ static void connect_and_report(struct addrinfo *ai, int port, int timeout_ms) {
 
         /* try to read small banner (use a shorter timeout for banner) */
         char buf[MAX_BANNER+1];
-        ssize_t n = grab_banner(sockfd, (timeout_ms < 200) ? timeout_ms : 200, buf, MAX_BANNER);
+        ssize_t n = grab_banner(sockfd, (timeout_ms < 20000) ? timeout_ms : 20000, buf, MAX_BANNER);
         if (n > 0) {
             /* make printable -- replace non-printable with '.' */
             size_t toshow = (size_t)n;
-            if (toshow > 512) toshow = 512; /* avoid printing huge banners */
+            // if (toshow > 512) toshow = 512; /* avoid printing huge banners */
             buf[toshow] = '\0';
             /* sanitize display */
             for (size_t i = 0; i < toshow; ++i) {
                 if (!isprint((unsigned char)buf[i])) buf[i] = '.';
             }
-            printf("  Banner (%zd bytes): %s\n", n, buf);
+            printf("  Data (%zd bytes): %s\n", n, buf);
         } else if (n == 0) {
-            printf("  No banner received (timeout or no initial data).\n");
+            printf("  No data received (timeout or no initial data).\n");
         } else {
-            printf("  Banner read error: %s\n", strerror(errno));
+            printf("  Data read error: %s\n", strerror(errno));
         }
 
         close(sockfd);
     } else if (rc == 0) {
         /* not open (timeout/refused) */
         /* Shouldn't normally reach here because caller already detected open, but safe-check */
-        printf("Port %d: closed or timed out (while trying to connect for banner)\n", port);
+        printf("Port %d: closed or timed out (while trying to connect for data)\n", port);
     } else {
         printf("Port %d: error while connecting: %s\n", port, strerror(errno));
     }
