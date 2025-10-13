@@ -1,0 +1,38 @@
+paper_by_ronak
+5
+Establishment year of NIT Trichy?
+4
+1960
+1964
+1975
+1970
+2
+Who is the HOD of CSE Department in NIT Trichy in 2025?
+4
+Dr. Kunwar Singh
+Dr. S. Selvakumar
+Dr. R. Mohan
+Dr. N. Ramasubramanian
+1
+Which hostel ha 1st year students?
+4
+Amethyst
+Ruby
+Perl
+Zircon
+1
+How many subjects M.Tech 1st year students have to study in 1st semester?
+5
+4
+6
+7
+5
+None of these
+2
+What is the average marks obtained by M.Tech 1st year students in ANPP in CT1?
+4
+7
+14
+12.3
+9.5
+4
