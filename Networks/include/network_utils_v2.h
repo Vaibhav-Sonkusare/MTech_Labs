@@ -12,11 +12,12 @@
 #define CLIENT_NAME_LEN 256
 
 // Message Header control info
-#define MESSAGE_TYPE_NORMAL  1
-#define MESSAGE_TYPE_CLOSURE 2
-#define MESSAGE_TYPE_ACK     3
-#define MESSAGE_TYPE_PING    4
-#define MESSAGE_TYPE_WAITINP 5
+#define MESSAGE_TYPE_NORMAL        1
+#define MESSAGE_TYPE_CLOSURE       2
+#define MESSAGE_TYPE_ACK           3
+#define MESSAGE_TYPE_PING          4
+#define MESSAGE_TYPE_WAITINP       5
+#define MESSAGE_TYPE_CUSTOM_STRUCT 6
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,9 +60,11 @@ extern int message_device(struct device *client, uint16_t type, const char *payl
 extern void depriciated_message_device_fd(int client_fd, const char *message_buffer);
 extern void broadcast_message(const char *message, uint16_t type);
 extern int message_device_formatted(struct device *client, uint16_t type, const char *fmt, ...);
+extern int message_device_custom_struct(struct device *client, uint16_t type, void *custom_struct, size_t size_custom_struct);
 
 // Get message from device
 extern ssize_t receive_message(struct device *client, char *buffer, size_t size, uint16_t *type);
+extern ssize_t receive_custom_struct(struct device *client, uint16_t *type, void *custom_struct, size_t size_custom_struct);
 
 // Device Management
 extern struct device *get_device_from_fd(int fd);
