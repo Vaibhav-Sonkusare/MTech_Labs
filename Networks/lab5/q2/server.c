@@ -66,16 +66,17 @@ void *handle_client(void *arg) {
 		perror("message_device_formatted: returned error");
 		
 	}
-    // struct paper *question_paper = choose_question_paper(client);
-    struct paper *question_paper = read_paper_from_file(PAPER_NAME);
+    struct paper *question_paper = choose_question_paper(client);
+    // struct paper *question_paper = read_paper_from_file(PAPER_NAME);
     if (question_paper == NULL) {
         perror("choose_question_paper: returned NULL");
-        exit(EXIT_FAILURE);
+        pthread_exit(NULL);
     }
 	if (debug > 1) {
     	printf("question paper selected: %s\n", question_paper->paper_name);
 	}
 
+    printf("Starting Paper(%s) for `%s`.\n", question_paper->paper_name, client->name);
     if (message_device_formatted(client, MESSAGE_TYPE_NORMAL, "You will be solving %s paper.\nBest of Luck!\n", question_paper->paper_name) < 0) {
 		perror("message_device_formatted: returned error");
 		
@@ -139,22 +140,26 @@ void *handle_client(void *arg) {
     }
     
     if (question_paper->current_question == question_paper->question_count) {
+        printf("\nExam Completed by `%s`.\n", client->name);
         if (message_device_formatted(client, MESSAGE_TYPE_NORMAL, "Exam Completed!\n") < 0) {
 			perror("message_device_formatted: returned error");
 			
 		}
-        if (score > 0) {
+        if (score >= ((question_paper->question_count) / 3)) {
+            printf("%s passed the exam.\n", client->name);
             if (message_device_formatted(client, MESSAGE_TYPE_NORMAL, "*****You PASSED!*****\n") < 0) {
 				perror("message_device_formatted: returned error");
 				
 			}
         } else {
+            printf("%s failed the exam.\n", client->name);
             if (message_device_formatted(client, MESSAGE_TYPE_NORMAL, "*****You FAILED!*****\n") < 0) {
 				perror("message_device_formatted: returned error");
 				
 			}
         }
 
+        printf("%s obtained score %d/%d\n", client->name, score, question_paper->question_count);
         if (message_device_formatted(client, MESSAGE_TYPE_NORMAL, "Your Score: %d/%d\n", score, question_paper->question_count) < 0) {
 			perror("message_device_formatted: returned error");
 			
@@ -170,6 +175,8 @@ void *handle_client(void *arg) {
     } else {
         printf("Exam incomplete!\n");
     }
+
+    printf("%s Disconnected!\n", client->name);
 
     cleanup_paper(question_paper);
     cleanup_client(client);
@@ -219,5 +226,13 @@ struct paper *choose_question_paper(struct device *client) {
     //TODO: implement check if 'paper_name' paper exist or not.
 
     // create paper object
-    return read_paper_from_file(paper_name);
+    char paper_file_path[512];
+    memset(paper_file_path, '\0', 512);
+    strncpy(paper_file_path, directory_path, 256);
+    strcpy(paper_file_path + strlen(paper_file_path), "/");
+    strncpy(paper_file_path + strlen(paper_file_path), paper_name, 256);
+    if (debug > 1) {
+        printf("Opening paper:^^%s^^\n", paper_file_path);
+    }
+    return read_paper_from_file(paper_file_path);
 }

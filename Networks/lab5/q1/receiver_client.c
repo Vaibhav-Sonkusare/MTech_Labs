@@ -19,6 +19,12 @@ int main () {
     printf("Received Data:\n");
     print_data_transmited(data);
 
+    // send ack
+    char ack_buff[32];
+    memset(ack_buff, '\0', 32);
+    strncpy(ack_buff, "data recvd.\n", 32);
+    send(tcp_client->fd, ack_buff, 32, 0);
+
     cleanup_client(tcp_client);
 }
 
