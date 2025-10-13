@@ -1,1 +1,3 @@
 for all the open ports, initiate a connection with a client.
+
+update: use recv for banner grabbing
