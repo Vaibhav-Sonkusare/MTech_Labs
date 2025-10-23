@@ -1,6 +1,6 @@
 // network_utils.c
 
-#include "../include/network_utils.h"
+#include "../include/network_utils_v2.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -11,12 +11,14 @@
 #include <poll.h>
 #include <time.h>
 #include <pthread.h>
+#include <stdarg.h>
 
 // Global Variables
 pthread_rwlock_t device_list_lock;
 struct device *device_list_head = NULL;
 struct device *tcp_server = NULL;
 struct device *tcp_client = NULL;
+int debug = 0;
 
 // Initializers
 extern struct device *initialize_tcp_server(const char *ip_address, int port) {    
@@ -161,45 +163,106 @@ extern void initialize_signal_handler() {
     signal(SIGTERM, handle_signal);
 }
 
-// Sending Messages
-extern void message_client(struct device *client, const char *message_bufffer) {
-    if (client == NULL || message_bufffer == NULL) {
-        fprintf(stderr, "message_client: client or message_buffer is NULL\n");
-        return;
+// Concurrent client management
+extern int concurrently_handle_clients_with_handler(void *(*__start_routine)(void *), int log_level) {
+    // check if tcp_server has been initialized
+    if (tcp_server == NULL) {
+        return -1;
     }
 
-    char buffer[BUFFER_SIZE];
-    int n = snprintf(buffer, BUFFER_SIZE, "%s\n", message_bufffer);
-    if (n < 0 || n >= BUFFER_SIZE) {
-        fprintf(stderr, "message_client: message too long\n");
-        return;
+    while (1) {
+        struct device *new_client = accept_client(tcp_server);
+
+        if (new_client == NULL) continue;
+
+        // Print connected client details on console
+        if (log_level > 0) {
+            char *client_ip_address = get_client_ip(new_client);
+            if (client_ip_address == NULL) {
+                if (log_level > 1) {
+                    perror("concurrently_handle_clients_with_handler: get_client_ip failed");
+                }
+                continue;
+            }
+            int client_port = get_client_port(new_client);
+            if (client_port == 0) {
+                if (log_level > 1) {
+                    perror("concurrently_handle_clients_with_handler: get_client_port failed");
+                }
+                continue;
+            }
+            printf("Connected to clinet IP: %s Port: %d", client_ip_address, ntohs(new_client->addr.sin_port));
+        }
+
+        pthread_t thread_id;
+        if (pthread_create(&thread_id, NULL, __start_routine, new_client) != 0) {
+            if (log_level > 1) {
+                perror("concurrently_handle_clients_with_handler: pthread_create error");
+            }
+            continue;
+        }
+
+        // if tcp server stoped, break
+        if (tcp_server == NULL) {
+            break;
+        }
     }
 
-    ssize_t bytes_sent = send(client->fd, buffer, (size_t)n, 0);
-    if (bytes_sent == -1) {
-        perror("message_client: send failed");
-    }
+    return 0;
 }
 
-extern void message_client_fd(int client_fd, const char *message_buffer) {
+// Sending Messages
+extern int message_device(struct device *client, uint16_t type, const char *payload, size_t payload_size) {
+    if (client == NULL) {
+        errno = EINVAL;
+        return -EINVAL;
+    }
+
+    struct MessageHeader header;
+    header.type = htons(type);
+    header.length = payload_size;
+
+    // send header
+    int ret_val = send(client->fd, &header, sizeof(header), 0);
+    if (ret_val < 0) {
+        return ret_val;
+    }
+
+    // send payload if any
+	if (debug > 2) {
+    	fprintf(stderr, "payload = %s^^^%ld^^\n", payload, payload_size);
+	}
+    if (payload && payload_size > 0) {
+        char buffer[BUFFER_SIZE];
+        strncpy(buffer, payload, BUFFER_SIZE);
+        ret_val = send(client->fd, buffer, BUFFER_SIZE, 0);
+        if (ret_val < 0) {
+            return ret_val;
+        }
+    }
+
+    return ret_val;
+}
+
+extern void depriciated_message_device_fd(int client_fd, const char *message_buffer) {
     if (client_fd < 0 || message_buffer == NULL) {
-        fprintf(stderr, "message_client_fd: invalid client_fd or message_buffer is NULL\n");
+        fprintf(stderr, "message_device_fd: invalid client_fd or message_buffer is NULL\n");
         return;
     }
 
     char buffer[BUFFER_SIZE];
     int n = snprintf(buffer, BUFFER_SIZE, "%s\n", message_buffer);
     if (n < 0 || n >= BUFFER_SIZE) {
-        fprintf(stderr, "message_client_fd: message too long\n");
+        fprintf(stderr, "message_device_fd: message too long\n");
         return;
     }
 
     ssize_t bytes_sent = send(client_fd, buffer, (size_t)n, 0);
     if (bytes_sent == -1) {
-        perror("message_client_fd: send failed");
+        perror("message_device_fd: send failed");
     }
 }
-extern void broadcast_message(const char *message) {
+extern void broadcast_message(const char *message, uint16_t type) {
     if (message == NULL) {
         fprintf(stderr, "broadcast_message: message is NULL\n");
         return;
@@ -208,10 +271,132 @@ extern void broadcast_message(const char *message) {
     pthread_rwlock_rdlock(&device_list_lock);
     struct device *itr = device_list_head;
     while (itr != NULL) {
-        message_client(itr, message);
+        message_device_formatted(itr, type, message);
         itr = itr->next;
     }
     pthread_rwlock_unlock(&device_list_lock);
+}
+
+extern int message_device_formatted(struct device *client, uint16_t type, const char *fmt, ...) {
+    char buffer[BUFFER_SIZE];
+
+    va_list args;
+    va_start(args, fmt);
+    int n = vsnprintf(buffer, sizeof(buffer), fmt, args);
+    va_end(args);
+
+    if (n < 0) {
+        errno = EILSEQ;     // Illegal byte sequence (common choice for encoding errors)
+        return -EILSEQ;
+    }
+    if (n >= BUFFER_SIZE) {
+        errno = EMSGSIZE;   // Message too long
+        return -EMSGSIZE;
+    }
+
+    return message_device(client, type, buffer, n);
+}
+
+extern int message_device_custom_struct(struct device *client, uint16_t type, void *custom_struct, size_t size_custom_struct) {
+    if (client == NULL) {
+        errno = EINVAL;
+        return -EINVAL;
+    }
+
+    struct MessageHeader header;
+    header.type = htons(type);
+    header.length = size_custom_struct;
+
+    // send header
+    int ret_val = send(client->fd, &header, sizeof(header), 0);
+    if (ret_val < 0) {
+        return ret_val;
+    }
+
+    // send payload if any
+	if (debug > 2) {
+    	fprintf(stderr, "size_custom_struct = %ld^^\n", size_custom_struct);
+	}
+    if (custom_struct != NULL && size_custom_struct > 0) {
+        ret_val = send(client->fd, custom_struct, size_custom_struct, 0);
+        if (ret_val < 0) {
+            if (debug > 2) {
+                perror("message_device_custom_struct: unable to send custom_struct");
+            }
+            return ret_val;
+        }
+    }
+
+    return ret_val;
+}
+
+// Get message from client
+extern ssize_t receive_message(struct device *client, char *payload, size_t size, uint16_t *type) {
+    if (client == NULL || payload == NULL || size <= 0) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    struct MessageHeader header;
+    ssize_t header_bytes = recv(client->fd, &header, sizeof(header), 0);
+    if (header_bytes <= 0) {
+        return header_bytes;
+    }
+
+    *type = ntohs(header.type);
+    uint16_t lenght = ntohs(header.length);
+
+    if (lenght >= size) {
+        lenght = size - 1;
+    }
+
+    memset(payload, '\0', size);
+    if (lenght > 0) {
+        char buffer[BUFFER_SIZE];
+        ssize_t bytes_received = recv(client->fd, buffer, BUFFER_SIZE, 0);
+        if (bytes_received <= 0) {
+            return bytes_received;
+        }
+        
+        strncpy(payload, buffer, lenght);
+        payload[bytes_received] = '\0';
+		if (debug > 2) {
+        	fprintf(stderr, "%s", payload);
+		}
+        return bytes_received;
+    } else {
+        return lenght;
+    }
+}
+
+extern ssize_t receive_custom_struct(struct device *client, uint16_t *type, void *custom_struct, size_t size_custom_struct) {
+    if (client == NULL || size_custom_struct <= 0) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    struct MessageHeader header;
+    ssize_t header_bytes = recv(client->fd, &header, sizeof(header), 0);
+    if (header_bytes <= 0) {
+        return header_bytes;
+    }
+
+    *type = ntohs(header.type);
+    uint16_t lenght = ntohs(header.length);
+
+    if (lenght != size_custom_struct) {
+        fprintf(stderr, "Invalid input size!\n");
+        return lenght;
+    }
+
+    ssize_t bytes_received = recv(client->fd, custom_struct, size_custom_struct, 0);
+    if (bytes_received <= 0) {
+        if (debug > 2) {
+            perror("receive_custom_struct: recv error!");
+        }
+        return bytes_received;
+    }
+    return bytes_received;
 }
 
 // Device Management
@@ -252,6 +437,34 @@ extern struct device *get_next_client_in_list(struct device *client) {
         return NULL;
     }
     return client->next;
+}
+
+extern char *get_client_ip(struct device *client) {
+    if (client == NULL) {
+        errno = EINVAL;
+        return NULL;
+    }
+
+    // char *ip_str = calloc(INET_ADDRSTRLEN + 1, sizeof(char));
+    // if (ip_str == NULL) {
+    //     return NULL;    // errno set by calloc
+    // }
+    static _Thread_local char ip_str[INET_ADDRSTRLEN + 1];
+
+    if (inet_ntop(client->addr.sin_family, &(client->addr.sin_addr), ip_str, INET_ADDRSTRLEN) == NULL) {
+        return NULL;    // errno set by inet_ntop
+    }
+
+    return ip_str;
+}
+
+extern uint16_t get_client_port(struct device *client) {
+    if (client == NULL) {
+        errno = EINVAL;
+        return 0;
+    }
+
+    return ntohs(client->addr.sin_port);
 }
 
 // Cleanup
@@ -315,10 +528,13 @@ extern void cleanup_all_clients() {
 }
 
 extern void handle_signal(int sig) {
-    printf("Caught signal %d, cleaning up and exiting...\n", sig);
+    printf("\nCaught signal %d, cleaning up and exiting...\n", sig);
     
     if (tcp_server != NULL) {
         cleanup_server(tcp_server);
+    }
+    if (tcp_client != NULL) {
+        cleanup_client(tcp_client);
     }
     exit(EXIT_SUCCESS);
 }
