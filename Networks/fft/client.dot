@@ -1,0 +1,14 @@
+digraph ReceiverFSM {
+  rankdir=LR;
+  node [shape=box];
+
+  R_IDLE -> R_HDR_RECV [label="recv(FILE_HDR) / create file"];
+  R_HDR_RECV -> R_RECVING_DATA [label="send(FILE_HDR_ACK)"];
+  R_RECVING_DATA -> R_RECVING_DATA [label="recv(DATA_PKT) / buffer records"];
+  R_RECVING_DATA -> R_SEND_REC_MISS [label="recv(IS_BLAST_OVER)"];
+  R_SEND_REC_MISS -> R_RECVING_DATA [label="send(REC_MISS(list != {}))"];
+  R_SEND_REC_MISS -> R_RECVING_DATA [label="send(REC_MISS({})) / more blasts expected"];
+  R_SEND_REC_MISS -> R_WAIT_DISCONNECT [label="send(REC_MISS({})) / final blast"];
+  R_WAIT_DISCONNECT -> R_DONE [label="recv(DISCONNECT) or linger timeout"];
+}
+
