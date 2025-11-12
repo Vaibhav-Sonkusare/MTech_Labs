@@ -3,17 +3,16 @@ digraph SenderFSM {
   node [shape=box];
 
   S_IDLE -> S_HDR_SENT [label="send(FILE_HDR)"];
-  S_HDR_SENT -> S_HDR_SENT [label="timeout(T_hdr) / retransmit(FILE_HDR)"];
+  S_HDR_SENT -> S_IDLE [label="timeout(T_hdr)"];
   S_HDR_SENT -> S_SENDING_BLAST [label="recv(FILE_HDR_ACK)"];
 
-  S_SENDING_BLAST -> S_WAIT_REC_MISS [label="blast packets sent / send(IS_BLAST_OVER)"];
+  S_SENDING_BLAST -> S_SENDING_BLAST [label="send({(st rec1, end rec1), . . . , (st recN , end recN )}forN≥1)"];
 
-  S_WAIT_REC_MISS -> S_SEND_MISSING [label="recv(REC_MISS(list != {}))"];
-  S_WAIT_REC_MISS -> S_SENDING_BLAST [label="recv(REC_MISS({})) / more blasts remain"];
+  S_SENDING_BLAST -> S_WAIT_REC_MISS [label="send(IS_BLAST_OVER)"];
+
+  S_WAIT_REC_MISS -> S_SENDING_BLAST [label="recv(REC_MISS(list != {})) / more blasts remain"];
   S_WAIT_REC_MISS -> S_LAST_BLAST_DONE [label="recv(REC_MISS({})) / this was final blast"];
-  S_WAIT_REC_MISS -> S_WAIT_REC_MISS [label="timeout(T_isblast) / retransmit(IS_BLAST_OVER)"];
-
-  S_SEND_MISSING -> S_WAIT_REC_MISS [label="sent missing records"];
+  S_WAIT_REC_MISS -> S_SENDING_BLAST [label="timeout(T_isblastover)"];
 
   S_LAST_BLAST_DONE -> S_DISCONNECT [label="send(DISCONNECT)"];
   S_DISCONNECT -> S_LINGER [label="start linger timer"];
