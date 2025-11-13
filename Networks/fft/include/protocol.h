@@ -1,6 +1,7 @@
 // protocol.h
 
 #include <stdio.h>
+#include <stdint.h>
 
 #define MAX_FILENAME_LEN 255
 #define MAX_RECORDS_PER_PACKET 16
@@ -19,13 +20,37 @@ typedef enum {
 #pragma pack(push, 1)
 
 typedef struct {
-    
+    uint8_t type;
+
+    uint16_t max_rec_size;
+    uint16_t count_records_per_packet;
+    uint16_t count_packets_per_blast;
+
+    uint64_t file_size;
+    uint16_t filename_len;
+    char filename[MAX_FILENAME_LEN];
+
+
 } pkt_file_hdr_t;
 
 typedef struct {
+    uint8_t type;
+
+    uint16_t max_rec_size;
+    uint16_t count_records_per_packet;
+    uint16_t count_packets_per_blast;
+
+    // 0 = Ok
+    // 1 = change in some sizes
+    uint8_t status;
 } pkt_file_hdr_ack_t;
 
 typedef struct {
+    uint8_t type;
+
+    uint32_t blast_id;
+    uint32_t nsegments;
+    uint32_t npackets;
 } pkt_blast_hdr_t;
 
 typedef struct {
