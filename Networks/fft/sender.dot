@@ -10,11 +10,13 @@ digraph SenderFSM {
 
   S_SENDING_BLAST -> S_WAIT_REC_MISS [label="send(IS_BLAST_OVER)"];
 
-  S_WAIT_REC_MISS -> S_SENDING_BLAST [label="recv(REC_MISS(list != {})) / more blasts remain"];
-  S_WAIT_REC_MISS -> S_LAST_BLAST_DONE [label="recv(REC_MISS({})) / this was final blast"];
+  S_WAIT_REC_MISS -> S_SENDING_BLAST [label="recv(REC_MISS(list != {}))"];
+  S_WAIT_REC_MISS -> S_LAST_BLAST_DONE [label="recv(REC_MISS({}))"];
   S_WAIT_REC_MISS -> S_SENDING_BLAST [label="timeout(T_isblastover)"];
 
   S_LAST_BLAST_DONE -> S_DISCONNECT [label="send(DISCONNECT)"];
+  S_LAST_BLAST_DONE -> S_SENDING_BLAST [label="send({(st rec1, end rec1), . . . , (st recN , end recN )}forN≥1)"];
+  
   S_DISCONNECT -> S_LINGER [label="start linger timer"];
   S_LINGER -> S_DONE [label="linger timeout"];
 }
