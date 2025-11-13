@@ -12,7 +12,10 @@ digraph ReceiverFSM {
   R_RECVING_BLAST -> R_SEND_REC_MISS [label="recv(IS_BLAST_OVER)"];
   R_SEND_REC_MISS -> R_RECVING_BLAST [label="send(REC_MISS(list != {}))"];
   R_SEND_REC_MISS -> R_WAIT_DISCONNECT [label="send(REC_MISS({})) / final blast"];
+  
   R_WAIT_DISCONNECT -> R_SEND_REC_MISS [label="recv(IS_BLAST_OVER)"];
+  R_WAIT_DISCONNECT -> R_RECVING_BLAST [label="recv(BLAST_PKT) / buffer records"];
+
   R_WAIT_DISCONNECT -> R_DONE [label="recv(DISCONNECT) or linger timeout"];
 }
 
