@@ -1,0 +1,454 @@
+/*
+Files contained below (three ns-3 programs):
+  1) bus_topology.cc
+  2) star_topology.cc
+  3) hybrid_topology.cc
+
+Build & run (ns-3-allinone):
+  1. Put each .cc file in <ns-3-root>/scratch/
+  2. From ns-3 root:
+       ./waf configure --enable-examples --enable-tests
+       ./waf build
+  3. Run example (example N=10):
+       ./waf --run "scratch/bus_topology --N=10"
+       ./waf --run "scratch/star_topology --N=10"
+       ./waf --run "scratch/hybrid_topology --N=10"
+
+Each program writes a CSV: results_<topology>_N.csv with columns:
+  Nodes,Throughput_Mbps,PacketLoss
+
+Simulation assumptions:
+ - Simulation time = 100s
+ - Odd-numbered nodes are sources, even-numbered nodes are destinations (1->2, 3->4, ...)
+ - Sources run continuous UDP OnOff from t=0 to t=100s with fixed packet size
+ - FlowMonitor is used to compute throughput and packet loss
+*/
+
+// ========================= bus_topology.cc =========================
+// Bus topology implemented with CSMA (single LAN subnet)
+
+#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/csma-module.h"
+#include "ns3/applications-module.h"
+#include "ns3/flow-monitor-module.h"
+
+using namespace ns3;
+
+int
+main (int argc, char *argv[])
+{
+  uint32_t N = 10;
+  double simTime = 100.0;
+  std::string csvPrefix = "results_bus";
+
+  CommandLine cmd;
+  cmd.AddValue ("N", "Number of nodes", N);
+  cmd.Parse (argc, argv);
+
+  if (N < 2)
+    {
+      std::cout << "Need at least 2 nodes\n";
+      return 1;
+    }
+
+  NodeContainer nodes;
+  nodes.Create (N);
+
+  CsmaHelper csma;
+  csma.SetChannelAttribute ("DataRate", StringValue ("100Mbps"));
+  csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));
+
+  NetDeviceContainer devices = csma.Install (nodes);
+
+  InternetStackHelper stack;
+  stack.Install (nodes);
+
+  Ipv4AddressHelper address;
+  address.SetBase ("10.1.1.0", "255.255.255.0");
+  Ipv4InterfaceContainer ifs = address.Assign (devices);
+
+  // Applications: odd -> next even
+  uint16_t port = 50000;
+  for (uint32_t i = 1; i+1 <= N; i += 2)
+    {
+      // destination is node i (0-based index i)
+      Address sinkLocalAddress (InetSocketAddress (ifs.GetAddress (i), port));
+      PacketSinkHelper sinkHelper ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), port));
+      ApplicationContainer sinkApp = sinkHelper.Install (nodes.Get (i));
+      sinkApp.Start (Seconds (0.0));
+      sinkApp.Stop (Seconds (simTime + 1.0));
+
+      OnOffHelper onoff ("ns3::UdpSocketFactory", Address (sinkLocalAddress));
+      onoff.SetConstantRate (DataRate ("1Mbps"));
+      onoff.SetAttribute ("PacketSize", UintegerValue (1024));
+      onoff.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1]"));
+      onoff.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0]"));
+
+      ApplicationContainer srcApp = onoff.Install (nodes.Get (i - 1));
+      srcApp.Start (Seconds (0.0));
+      srcApp.Stop (Seconds (simTime));
+    }
+
+  // Flow monitor
+  FlowMonitorHelper flowmonHelper;
+  Ptr<FlowMonitor> flowmon = flowmonHelper.InstallAll ();
+
+  Simulator::Stop (Seconds (simTime + 1.0));
+  Simulator::Run ();
+
+  // Analyze FlowMonitor
+  Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowmonHelper.GetClassifier ());
+  std::map<FlowId, FlowMonitor::FlowStats> stats = flowmon->GetFlowStats ();
+
+  uint64_t totalRxBytes = 0;
+  uint64_t totalTxPackets = 0;
+  uint64_t totalRxPackets = 0;
+
+  for (auto &kv : stats)
+    {
+      FlowId id = kv.first;
+      FlowMonitor::FlowStats st = kv.second;
+      std::string flowDesc = classifier->FindFlow (id).c_str ();
+      totalRxBytes += st.rxBytes;
+      totalTxPackets += st.txPackets;
+      totalRxPackets += st.rxPackets;
+    }
+
+  double throughput_bps = (double) totalRxBytes * 8.0 / simTime; // bps
+  double throughput_mbps = throughput_bps / 1e6;
+  uint64_t packetLoss = 0;
+  if (totalTxPackets >= totalRxPackets) packetLoss = totalTxPackets - totalRxPackets;
+
+  // Output CSV
+  std::ostringstream fname;
+  fname << csvPrefix << "_" << N << ".csv";
+  std::ofstream ofs (fname.str ());
+  ofs << "Nodes,Throughput_Mbps,PacketLoss\n";
+  ofs << N << "," << throughput_mbps << "," << packetLoss << "\n";
+  ofs.close ();
+
+  // Also print summary
+  std::cout << "BUS TOPOLOGY - N=" << N << " Throughput(Mbps): " << throughput_mbps << " PacketLoss: " << packetLoss << "\n";
+
+  Simulator::Destroy ();
+  return 0;
+}
+
+
+// ========================= star_topology.cc (FIXED & CLEAN) =========================
+// Star topology: hub = node 0, leaves = node 1..N-1
+// Odd leaves send → next even leaf
+// Example (N=6): 1→2, 3→4, 5→6 (but hub is node 0 and excluded)
+
+#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/applications-module.h"
+#include "ns3/flow-monitor-module.h"
+
+using namespace ns3;
+
+int main(int argc, char *argv[]) {
+  uint32_t N = 10;            // total nodes = hub (0) + N-1 leaves
+  double simTime = 100.0;
+  std::string csvPrefix = "results_star";
+
+  CommandLine cmd;
+  cmd.AddValue("N", "Total number of nodes (1 hub + N-1 leaves)", N);
+  cmd.Parse(argc, argv);
+
+  if (N < 3) {
+    NS_LOG_UNCOND("Star topology needs at least 3 nodes");
+    return 1;
+  }
+
+  // Create hub + leaf nodes
+  NodeContainer nodes;
+  nodes.Create(N);
+
+  // Hub = node 0
+  uint32_t hub = 0;
+
+  PointToPointHelper p2p;
+  p2p.SetDeviceAttribute("DataRate", StringValue("50Mbps"));
+  p2p.SetChannelAttribute("Delay", StringValue("2ms"));
+
+  InternetStackHelper stack;
+  stack.Install(nodes);
+
+  // Build star: each leaf connects to hub
+  Ipv4AddressHelper address;
+  char subnet[20];
+
+  for (uint32_t i = 1; i < N; i++) {
+    NodeContainer link(nodes.Get(hub), nodes.Get(i));
+    NetDeviceContainer nd = p2p.Install(link);
+
+    sprintf(subnet, "10.1.%d.0", i);
+    address.SetBase(subnet, "255.255.255.0");
+    address.Assign(nd);
+  }
+
+  // Applications: odd leaves → next even leaf
+  uint16_t port = 60000;
+
+  for (uint32_t i = 1; i < N; i++) {
+    if (i % 2 == 1) {   // odd leaf
+      uint32_t dest = i + 1;
+
+      if (dest >= N) break;  // no partner
+
+      // Get destination IP (any non-loopback interface)
+      Ptr<Ipv4> ipv4 = nodes.Get(dest)->GetObject<Ipv4>();
+      Ipv4Address dstAddr = Ipv4Address::GetAny();
+
+      for (uint32_t j = 1; j < ipv4->GetNInterfaces(); j++) {
+        Ipv4InterfaceAddress ifaddr = ipv4->GetAddress(j, 0);
+        if (!ifaddr.GetLocal().IsLoopback()) {
+          dstAddr = ifaddr.GetLocal();
+          break;
+        }
+      }
+
+      // Install receiver on even node
+      PacketSinkHelper sinkHelper("ns3::UdpSocketFactory",
+                                  InetSocketAddress(Ipv4Address::GetAny(), port));
+      ApplicationContainer sinkApp = sinkHelper.Install(nodes.Get(dest));
+      sinkApp.Start(Seconds(0.0));
+      sinkApp.Stop(Seconds(simTime + 1.0));
+
+      // Install sender on odd node
+      Address sinkAddress(InetSocketAddress(dstAddr, port));
+      OnOffHelper onoff("ns3::UdpSocketFactory", sinkAddress);
+      onoff.SetConstantRate(DataRate("1Mbps"));
+      onoff.SetAttribute("PacketSize", UintegerValue(1024));
+      onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
+      onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
+
+      ApplicationContainer srcApp = onoff.Install(nodes.Get(i));
+      srcApp.Start(Seconds(0.0));
+      srcApp.Stop(Seconds(simTime));
+    }
+  }
+
+  // Flow Monitor
+  FlowMonitorHelper fmHelper;
+  Ptr<FlowMonitor> fm = fmHelper.InstallAll();
+
+  Simulator::Stop(Seconds(simTime + 1));
+  Simulator::Run();
+
+  // Stats
+  uint64_t totalRxBytes = 0;
+  uint64_t totalTx = 0;
+  uint64_t totalRx = 0;
+
+  for (auto &f : fm->GetFlowStats()) {
+    totalRxBytes += f.second.rxBytes;
+    totalTx += f.second.txPackets;
+    totalRx += f.second.rxPackets;
+  }
+
+  double throughputMbps = (totalRxBytes * 8.0) / simTime / 1e6;
+  uint64_t loss = totalTx - totalRx;
+
+  // CSV Output
+  std::ofstream out(csvPrefix + "_" + std::to_string(N) + ".csv");
+  out << "Nodes,Throughput_Mbps,PacketLoss
+";
+  out << N << "," << throughputMbps << "," << loss << "
+";
+  out.close();
+
+  std::cout << "STAR TOPOLOGY - N=" << N
+            << " Throughput(Mbps): " << throughputMbps
+            << " PacketLoss: " << loss << std::endl;
+
+  Simulator::Destroy();
+  return 0;
+}
+
+
+
+// ========================= hybrid_topology.cc =========================
+// Hybrid: star backbone + point-to-point chain linking last K nodes
+
+#include "ns3/core-module.h"
+#include "ns3/network-module.h"
+#include "ns3/internet-module.h"
+#include "ns3/point-to-point-module.h"
+#include "ns3/applications-module.h"
+#include "ns3/flow-monitor-module.h"
+
+using namespace ns3;
+
+int
+main_hybrid (int argc, char *argv[])
+{
+  uint32_t N = 10;
+  double simTime = 100.0;
+  uint32_t chainLen = 4; // number of nodes to form a chain at the end (adjustable)
+  std::string csvPrefix = "results_hybrid";
+
+  CommandLine cmd;
+  cmd.AddValue ("N", "Number of nodes", N);
+  cmd.AddValue ("chainLen", "Number of nodes in chain (from end)", chainLen);
+  cmd.Parse (argc, argv);
+
+  if (N < 2)
+    {
+      std::cout << "Need at least 2 nodes\n";
+      return 1;
+    }
+  if (chainLen >= N) chainLen = N/2;
+
+  NodeContainer nodes;
+  nodes.Create (N);
+
+  // Star backbone: hub = node 0, leaves 1..N-1
+  PointToPointHelper p2p;
+  p2p.SetDeviceAttribute ("DataRate", StringValue ("50Mbps"));
+  p2p.SetChannelAttribute ("Delay", StringValue ("2ms"));
+
+  InternetStackHelper stack;
+  stack.Install (nodes);
+
+  Ipv4AddressHelper address;
+  char subnet[20];
+  std::vector<NetDeviceContainer> starDevs;
+  for (uint32_t i = 1; i < N; ++i)
+    {
+      NodeContainer pair (nodes.Get (0), nodes.Get (i));
+      NetDeviceContainer d = p2p.Install (pair);
+      starDevs.push_back (d);
+      sprintf (subnet, "10.1.%d.0", (int) i);
+      address.SetBase (subnet, "255.255.255.0");
+      address.Assign (d);
+    }
+
+  // Additional chain among last chainLen nodes (link node indices N-chainLen .. N-1)
+  uint32_t startChain = (N > chainLen) ? (N - chainLen) : 1;
+  for (uint32_t i = startChain; i < N - 1; ++i)
+    {
+      NodeContainer chainPair (nodes.Get (i), nodes.Get (i + 1));
+      NetDeviceContainer d = p2p.Install (chainPair);
+      sprintf (subnet, "10.2.%d.0", (int) i);
+      address.SetBase (subnet, "255.255.255.0");
+      address.Assign (d);
+    }
+
+  // Applications: treat node numbering 0..N-1; odd -> next even
+  uint16_t port = 70000;
+
+  for (uint32_t i = 0; i < N; ++i)
+    {
+      if ((i % 2) == 1) // even in 1-based numbering
+        {
+          uint32_t dest = i + 1;
+          if (dest >= N) break;
+
+          // pick an interface address from destination node (interface 1 or higher)
+          Ptr<Ipv4> ipv4 = nodes.Get (dest)->GetObject<Ipv4> ();
+          // choose the first non-loopback address
+          Ipv4Address dstAddr = Ipv4Address::GetAny ();
+          for (uint32_t j = 1; j < ipv4->GetNInterfaces (); ++j)
+            {
+              Ipv4InterfaceAddress ifaddr = ipv4->GetAddress (j, 0);
+              if (!ifaddr.GetLocal ().IsEqual (Ipv4Address::GetLoopback ()))
+                {
+                  dstAddr = ifaddr.GetLocal ();
+                  break;
+                }
+            }
+          if (dstAddr == Ipv4Address::GetAny ()) continue;
+
+          PacketSinkHelper sinkHelper ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), port));
+          ApplicationContainer sinkApp = sinkHelper.Install (nodes.Get (dest));
+          sinkApp.Start (Seconds (0.0));
+          sinkApp.Stop (Seconds (simTime + 1.0));
+
+          Address sinkLocalAddress (InetSocketAddress (dstAddr, port));
+          OnOffHelper onoff ("ns3::UdpSocketFactory", Address (sinkLocalAddress));
+          onoff.SetConstantRate (DataRate ("1Mbps"));
+          onoff.SetAttribute ("PacketSize", UintegerValue (1024));
+          onoff.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1]"));
+          onoff.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0]"));
+
+          ApplicationContainer srcApp = onoff.Install (nodes.Get (i));
+          srcApp.Start (Seconds (0.0));
+          srcApp.Stop (Seconds (simTime));
+        }
+    }
+
+  FlowMonitorHelper flowmonHelper;
+  Ptr<FlowMonitor> flowmon = flowmonHelper.InstallAll ();
+
+  Simulator::Stop (Seconds (simTime + 1.0));
+  Simulator::Run ();
+
+  Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowmonHelper.GetClassifier ());
+  std::map<FlowId, FlowMonitor::FlowStats> stats = flowmon->GetFlowStats ();
+
+  uint64_t totalRxBytes = 0;
+  uint64_t totalTxPackets = 0;
+  uint64_t totalRxPackets = 0;
+
+  for (auto &kv : stats)
+    {
+      FlowId id = kv.first;
+      FlowMonitor::FlowStats st = kv.second;
+      totalRxBytes += st.rxBytes;
+      totalTxPackets += st.txPackets;
+      totalRxPackets += st.rxPackets;
+    }
+
+  double throughput_bps = (double) totalRxBytes * 8.0 / simTime; // bps
+  double throughput_mbps = throughput_bps / 1e6;
+  uint64_t packetLoss = 0;
+  if (totalTxPackets >= totalRxPackets) packetLoss = totalTxPackets - totalRxPackets;
+
+  std::ostringstream fname;
+  fname << csvPrefix << "_" << N << ".csv";
+  std::ofstream ofs (fname.str ());
+  ofs << "Nodes,Throughput_Mbps,PacketLoss\n";
+  ofs << N << "," << throughput_mbps << "," << packetLoss << "\n";
+  ofs.close ();
+
+  std::cout << "HYBRID TOPOLOGY - N=" << N << " Throughput(Mbps): " << throughput_mbps << " PacketLoss: " << packetLoss << "\n";
+
+  Simulator::Destroy ();
+  return 0;
+}
+
+// main dispatcher to allow separate compilation name collisions avoided by giving distinct main functions
+int
+main (int argc, char *argv[])
+{
+  // Decide which topology to run by executable name
+  // If invoked as "bus_topology" run bus; "star_topology" run star; "hybrid_topology" hybrid.
+  // We detect argv[0]
+  std::string prog = argv[0];
+  if (prog.find ("bus") != std::string::npos)
+    {
+      // call bus main by re-executing the first segment: compile-time we included bus main as main above
+      // But because of single translation unit we named that first main normally; to avoid duplicate symbol issues
+      // we rely on the build process creating separate executables from same file name under waf (scratch).
+      return ::main (argc, argv);
+    }
+  else if (prog.find ("star") != std::string::npos)
+    {
+      return main_star (argc, argv);
+    }
+  else if (prog.find ("hybrid") != std::string::npos)
+    {
+      return main_hybrid (argc, argv);
+    }
+  else
+    {
+      // default: run bus implementation
+      return ::main (argc, argv);
+    }
+}
