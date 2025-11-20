@@ -2,50 +2,48 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-df = pd.read_csv("_q2_dataset.csv")
-data = df.to_numpy()
-print("Original Data:")
-print(data)
+# Create the dataset and standardize it manually
+data = {
+    "Feature1": [4.0, 2.0, 3.0, 5.0, 6.0],
+    "Feature2": [2.0, 3.5, 4.0, 3.0, 5.0],
+    "Feature3": [0.6, 1.1, 0.9, 1.0, 1.5],
+    "Feature4": [3.0, 2.2, 3.5, 4.0, 5.0]
+}
 
-sdata = (data - data.mean(axis=0)) / data.std(axis=0, ddof=1)
-print("Standardized Data:")
-print(sdata)
+df = pd.DataFrame(data, index=[1, 2, 3, 4, 5])
+print("Original Dataset:\n", df, "\n")
 
-# Covariance matrix
-cov_sdata = np.cov(sdata.T)
+# Standardization: mean = 0, variance = 1
+mean = df.mean()
+std = df.std(ddof=0)
+standardized_df = (df - mean) / std
+print("Standardized Dataset:\n", standardized_df, "\n")
 
-e_value, e_vector = np.linalg.eig(cov_sdata)
-print("Eigen Value and Eigen Vectors:")
-print(e_value)
-print(e_vector)
+# Compute covariance matrix, eigenvalues, and eigenvectors
+cov_matrix = np.cov(standardized_df.T)
+print("Covariance Matrix:\n", cov_matrix, "\n")
 
-sorted_indices = np.argsort(e_value)[::-1]
-e_value = e_value[sorted_indices]
-e_vector = e_vector[:, sorted_indices]
-print("Eigen Values and vectors sorted in decreasing order are:")
-print(e_value)
-print(e_vector)
+# Eigen decomposition
+eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
 
-pc1 = e_vector[:, 0]
-pc2 = e_vector[:, 1]
-X_pca = data.std(axis=0, ddof=1) @ np.column_stack((pc1, pc2))
-# print("New Datase:")
-# print(X_pca)
+# Sort eigenvalues & eigenvectors in descending order
+sorted_indices = np.argsort(eigenvalues)[::-1]
+eigenvalues = eigenvalues[sorted_indices]
+eigenvectors = eigenvectors[:, sorted_indices]
 
-explained_variance_ratio = e_value / np.sum(e_value)
-print("\nExplained Variance Ratio:\n", explained_variance_ratio)
+# Explained variance
+explained_variance_ratio = eigenvalues / np.sum(eigenvalues)
 
-print("\nProjected Data onto first two Principal Components:\n", X_pca)
+print("Eigenvalues:\n", eigenvalues)
+print("\nEigenvectors (columns are PCs):\n", eigenvectors)
+print("\nExplained Variance Ratio (%):\n", explained_variance_ratio * 100, "\n")
 
-# Step 7: Discuss variance explained
-print(f"\nVariance explained by PC1: {explained_variance_ratio[0]*100:.2f}%")
-print(f"Variance explained by PC2: {explained_variance_ratio[1]*100:.2f}%")
-# print(f"Total (PC1 + PC2): {(explained_variance_ratio[0] + explained_variance_ratio[1])*100:.2f}%")
-
-W = e_vector[:, :2]
+# Project data into PCA space (PC1 vs PC2)
+# Get first two eigenvectors
+W = eigenvectors[:, :2]
 
 # Transform data
-pca_data = sdata.values.dot(W)
+pca_data = standardized_df.values.dot(W)
 
 plt.figure(figsize=(8,6))
 plt.scatter(pca_data[:, 0], pca_data[:, 1], color='steelblue', s=80)
@@ -55,9 +53,9 @@ plt.title("PCA (Manual): PC1 vs PC2")
 
 # Draw feature vectors to show direction of max variance
 for i, feature in enumerate(df.columns):
-    plt.arrow(0, 0, e_vector[i,0]*2, e_vector[i,1]*2, 
+    plt.arrow(0, 0, eigenvectors[i,0]*2, eigenvectors[i,1]*2, 
               color='r', head_width=0.05, alpha=0.6)
-    plt.text(e_vector[i,0]*2.2, e_vector[i,1]*2.2, feature, color='r')
+    plt.text(eigenvectors[i,0]*2.2, eigenvectors[i,1]*2.2, feature, color='r')
 
 plt.grid(True)
 # plt.show()
@@ -65,7 +63,7 @@ plt.savefig("_q2_fig.png")
 
 # Interpretation
 # Top 2 contributing features for PC1
-loadings_pc1 = np.abs(e_vector[:, 0])
+loadings_pc1 = np.abs(eigenvectors[:, 0])
 top_features_pc1 = df.columns[np.argsort(loadings_pc1)[-2:][::-1]]
 
 print("Top 2 features contributing most to PC1:", list(top_features_pc1))
