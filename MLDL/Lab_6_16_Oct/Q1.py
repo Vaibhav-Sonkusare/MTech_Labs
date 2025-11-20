@@ -1,45 +1,47 @@
 import numpy as np
 import pandas as pd
 
-df = pd.read_csv("_q1_dataset.csv")
-data = df[['Feature1', 'Feature2', 'Feature3']].to_numpy()
-print("Original Dataset:")
-print(data)
+# Step 1: Load dataset
+data = pd.DataFrame({
+    'ID': [1, 2, 3, 4, 5],
+    'Feature1': [2.5, 0.5, 2.2, 1.9, 3.1],
+    'Feature2': [2.4, 0.7, 2.9, 2.2, 3.0],
+    'Feature3': [1.0, 2.0, 2.1, 3.0, 1.1]
+})
 
-means = data.mean(axis=0)
-std = data.std(axis=0)
-sdata = (data - data.mean(axis=0)) / data.std(axis=0, ddof=1)
-print("Standardized Dataset:")
-print(sdata)
+X = data[['Feature1', 'Feature2', 'Feature3']].values
+print("Original Data:\n", X)
 
-# Verifying mean and standerd deviation of sdata
-# print(np.mean(sdata, axis=0))
-# print(np.std(sdata, axis=0, ddof=1))
+# Step 2: Standardize the dataset (mean = 0, std = 1)
+means = np.mean(X, axis=0)
+stds = np.std(X, axis=0, ddof=1)  # sample std (ddof=1)
+X_std = (X - means) / stds
 
-cov_sdata = np.cov(sdata.T)
-print("Covariance Matrix:")
-print(cov_sdata)
+print("\nStandardized Data (mean=0, std=1):\n", X_std)
 
-e_value, e_vector = np.linalg.eig(cov_sdata)
-print("Eigen Values and Eigen Vectors:")
-print(e_value)
-print(e_vector)
+# Step 3: Compute the covariance matrix
+cov_matrix = np.cov(X_std.T)
+print("\nCovariance Matrix:\n", cov_matrix)
 
-sorted_indices = np.argsort(e_value)[::-1]
-e_value = e_value[sorted_indices]
-e_vector = e_vector[:, sorted_indices]
-print("Eigen Values and vectors sorted in decreasing order are:")
-print(e_value)
-print(e_vector)
+# Step 4: Compute eigenvalues and eigenvectors
+eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
 
-pc1 = e_vector[:, 0]
-pc2 = e_vector[:, 1]
-X_pca = std @ np.column_stack((pc1, pc2))
-# print("New Datase:")
-# print(X_pca)
+# Sort eigenvalues and corresponding eigenvectors in descending order
+sorted_indices = np.argsort(eigenvalues)[::-1]
+eigenvalues = eigenvalues[sorted_indices]
+eigenvectors = eigenvectors[:, sorted_indices]
 
-explained_variance_ratio = e_value / np.sum(e_value)
+print("\nEigenvalues (sorted):\n", eigenvalues)
+print("\nEigenvectors (sorted):\n", eigenvectors)
+
+# Step 5: Compute explained variance ratio
+explained_variance_ratio = eigenvalues / np.sum(eigenvalues)
 print("\nExplained Variance Ratio:\n", explained_variance_ratio)
+
+# Step 6: Project data onto the first two principal components
+pc1 = eigenvectors[:, 0]
+pc2 = eigenvectors[:, 1]
+X_pca = X_std @ np.column_stack((pc1, pc2))
 
 print("\nProjected Data onto first two Principal Components:\n", X_pca)
 

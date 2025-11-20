@@ -2,53 +2,58 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Step 1: Create dataset
-data = {
-    'Customer_ID': [1, 2, 3, 4, 5],
-    'Purchase_Frequency': [5, 3, 8, 2, 6],
-    'Avg_Spending': [200, 150, 300, 100, 250],
-    'Discount_Used': [0.2, 0.5, 0.1, 0.8, 0.3],
-    'Visits_Per_Month': [3, 4, 5, 2, 6]
-}
+df = pd.read_csv("_q2_dataset.csv")
 
-df = pd.DataFrame(data)
+data = df[['Purchase Frequency', 'Avg_Spending', 'Discount Used', 'Visits_Per_Month']].to_numpy()
 
-# Step 2: Standardize numerical features (mean = 0, std = 1)
-features = ['Purchase_Frequency', 'Avg_Spending', 'Discount_Used', 'Visits_Per_Month']
-X = df[features].values
+sdata = (data - data.mean(axis=0)) / data.std(axis=0, ddof=1)
+print("Standardized Dataset:")
+print(sdata)
 
-means = np.mean(X, axis=0)
-stds = np.std(X, axis=0, ddof=1)
-X_std = (X - means) / stds
+cov_sdata = np.cov(sdata.T)
+e_value, e_vector = np.linalg.eig(cov_sdata)
+sorted_indices = np.argsort(e_value)[::-1]
+e_value = e_value[sorted_indices]
+e_vector = e_vector[:, sorted_indices]
+print("Sorted Eigen Values:")
+print(e_value)
+print("Corresponding Eigen Vectors:")
+print(e_vector)
 
-# Step 3: Covariance matrix
-cov_matrix = np.cov(X_std, rowvar=False)
+pc = [e_vector[:, i] for i in range(len(e_value))]
+for i in range(len(pc)):
+    print(f"PC{i+1}: {pc[i]}, Variance % = {(e_value[i] * 100) / np.sum(e_value)}%")
 
-# Step 4: Eigen decomposition
-eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
+# ====== 🧭 NEW SECTION: Identify which features drive PC1 and PC2 ======
+feature_names = ['Purchase Frequency', 'Avg_Spending', 'Discount Used', 'Visits_Per_Month']
+loadings = pd.DataFrame(e_vector[:, :2], columns=['PC1', 'PC2'], index=feature_names)
 
-# Step 5: Sort eigenvalues and eigenvectors
-idx = np.argsort(eigenvalues)[::-1]
-eigenvalues = eigenvalues[idx]
-eigenvectors = eigenvectors[:, idx]
+print("\nFeature Loadings for First Two Principal Components:")
+print(loadings)
 
-# Step 6: Explained variance
-explained_variance_ratio = eigenvalues / np.sum(eigenvalues)
+# Show top contributing features for PC1 and PC2
+for i in range(2):
+    pc_name = f'PC{i+1}'
+    sorted_feats = loadings[pc_name].abs().sort_values(ascending=False)
+    top_feat = sorted_feats.index[0]
+    print(f"\nTop feature driving {pc_name}: {top_feat} "
+          f"(loading = {loadings.loc[top_feat, pc_name]:.3f})")
 
-# Step 7: Project data onto top 2 principal components
-X_pca = np.dot(X_std, eigenvectors[:, :2])
-print("______________1:", X_pca)
+# ================================================================
 
-# Step 8: Plot customers in PC1–PC2 space
+# Projecting data on PC1, PC2
+ndata = np.dot(sdata, e_vector[:, :2])
+# print("1:", ndata)
+
 spending_level = df['Avg_Spending']
-print("______________2:", spending_level)
+# print("2:", spending_level)
 
 plt.figure(figsize=(8,6))
-plt.scatter(X_pca[:, 0], X_pca[:, 1],
+plt.scatter(ndata[:, 0], ndata[:, 1],
             c=spending_level, cmap='viridis', s=100, edgecolors='k')
 
-for i, cid in enumerate(df['Customer_ID']):
-    plt.text(X_pca[i, 0] + 0.05, X_pca[i, 1], f'Cust {cid}', fontsize=9)
+for i, cid in enumerate(df['Customer ID']):
+    plt.text(ndata[i, 0] + 0.05, ndata[i, 1], f'Cust {cid}', fontsize=9)
 
 plt.xlabel('Principal Component 1')
 plt.ylabel('Principal Component 2')
@@ -57,12 +62,4 @@ plt.colorbar(label='Avg Spending')
 plt.grid(True)
 # plt.show()
 plt.savefig("_Q2_fig.jpeg")
-
-# Step 9: Print results
-print("Eigenvalues:\n", eigenvalues)
-print("\nEigenvectors (columns correspond to PCs):\n", eigenvectors)
-print("\nExplained variance ratio:\n", explained_variance_ratio)
-
-# Interpretation hints
-loadings = pd.DataFrame(eigenvectors, index=features, columns=['PC1', 'PC2', 'PC3', 'PC4'])
-print("\nFeature loadings on PCs:\n", loadings)
+print("Plot saved in _Q2_fig.jpeg")

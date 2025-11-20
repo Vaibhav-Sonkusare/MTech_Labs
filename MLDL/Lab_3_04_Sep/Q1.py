@@ -41,6 +41,7 @@ plt.plot(x1_points, y1_points, 'o')
 plt.plot(x2_points, y2_points, 'o')
 # plt.show()
 plt.savefig("_q1_plot.png")
+print("graph plot saved in _q1_plot.png file")
 
 x_points = np.array(data.loc[:, 'X1'])
 y_points = np.array(data.loc[:, 'X2'])
