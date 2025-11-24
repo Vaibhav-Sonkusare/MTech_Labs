@@ -28,6 +28,7 @@ void build_pkt_file_hdr(pkt_file_hdr_t* pkt,
     if (file_name_len > MAX_FILENAME_LEN)
         file_name_len = MAX_FILENAME_LEN;
 
+    memset(pkt->filename, '\0', MAX_FILENAME_LEN + 1);
     memcpy(pkt->filename, filename, file_name_len);
     pkt->filename[file_name_len] = '\0';   // Null-terminate
 }
