@@ -49,3 +49,9 @@ fast-udp-transfer/
 ├── Makefile
 ├── README.md
 └── Term Project-1-Fast File Xfer over UDP.pdf
+
+
+# Random data files to send genereated using the following command:
+> tr -dc "A-Za-z 0-9" < /dev/urandom | fold -w100|head -n 100000 > bigfile.txt
+
+Here, modifing the integer after -n in head command, changes the number of lines in the output file, thereby acheaving the effect of changing test file size

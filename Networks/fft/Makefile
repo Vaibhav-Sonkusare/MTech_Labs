@@ -2,74 +2,75 @@
 #   Fast UDP File Transfer Project — Makefile
 # ============================================================
 
-# ---- Compiler and Flags ----
 CC      := gcc
 CFLAGS  := -Wall -Wextra -Werror -std=c11 -O2 -g
 INCLUDES:= -Iinclude
-LDFLAGS := 
 
-# ---- Directories ----
 SRC_DIR := src
-INC_DIR := include
 BUILD_DIR := build
 BIN_DIR := bin
 TEST_DIR := tests
 
-# ---- Source Files ----
-SOURCES := $(wildcard $(SRC_DIR)/*.c)
-OBJS    := $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(SOURCES))
+# ============================================================
+#   Collect all source files dynamically
+# ============================================================
+SRC_FILES := $(wildcard $(SRC_DIR)/*.c)
 
-# ---- Executables ----
+# Convert to object files in build/
+OBJS := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRC_FILES))
+
+# Executables
 SENDER  := $(BIN_DIR)/sender
 RECEIVER:= $(BIN_DIR)/receiver
 TEST_EXEC := $(BIN_DIR)/test_protocol
 
 # ============================================================
-#   Default Target
+#   Build Everything
 # ============================================================
 all: dirs $(SENDER) $(RECEIVER)
 
-# Make necessary folders
 dirs:
 	@mkdir -p $(BUILD_DIR) $(BIN_DIR)
 
 # ============================================================
-#   Build Rules
+#   Compile all .c → .o
 # ============================================================
-
-# Build object files
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
-# ---- Sender Executable ----
-$(SENDER): $(BUILD_DIR)/sender.o $(OBJS)
+# ============================================================
+#   Build Executables Separately
+# ============================================================
+
+# All object files except sender.o
+RECEIVER_OBJS := $(filter-out $(BUILD_DIR)/sender.o, $(OBJS))
+
+# All object files except receiver.o
+SENDER_OBJS := $(filter-out $(BUILD_DIR)/receiver.o, $(OBJS))
+
+# Sender executable
+$(SENDER): $(SENDER_OBJS)
 	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $@
 
-# ---- Receiver Executable ----
-$(RECEIVER): $(BUILD_DIR)/receiver.o $(OBJS)
+# Receiver executable
+$(RECEIVER): $(RECEIVER_OBJS)
 	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $@
 
 # ============================================================
 #   Tests
 # ============================================================
+TEST_OBJS := $(filter-out $(BUILD_DIR)/sender.o $(BUILD_DIR)/receiver.o, $(OBJS))
 
 test: $(TEST_EXEC)
 	./$(TEST_EXEC)
 
-$(TEST_EXEC): $(TEST_DIR)/test_protocol.c $(OBJS)
+$(TEST_EXEC): $(TEST_DIR)/test_protocol.c $(TEST_OBJS)
 	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $@
 
 # ============================================================
-#   Utilities
+#   Clean
 # ============================================================
-
 clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR)
 
-run_sender:
-	./$(SENDER)
-
-run_receiver:
-	./$(RECEIVER)
-
-.PHONY: all clean test dirs run_sender run_receiver
+.PHONY: all clean test dirs
