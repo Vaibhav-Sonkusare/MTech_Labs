@@ -1,8 +1,12 @@
+// net.c
+
 #include "net.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <time.h>
 
 int create_udp_socket() {
     int sockfd = socket(AF_INET, SOCK_DGRAM, 0);

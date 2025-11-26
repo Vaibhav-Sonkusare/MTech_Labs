@@ -1,3 +1,5 @@
+// fileio.c
+
 #define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdint.h>
@@ -81,11 +83,17 @@ int read_file_to_records(const char *path, uint16_t rec_size,
     }
 
     for (uint32_t i = 0; i < nrec; ++i) {
-        recs[i].record_id = i + 1; /* 1-based */
+        recs[i].record_id = i + 1;
         recs[i].data = blob + (size_t)i * rec_size;
-        /* last record: may be partially filled, but we store rec_size as size.
-           It's easier if we keep a fixed size for all records; the blob is zero-padded. */
-        recs[i].size = rec_size;
+
+        if (i < nrec - 1) {
+            recs[i].size = rec_size;
+        } else {
+            // last record
+            uint64_t offset = (uint64_t)i * rec_size;
+            uint64_t remaining = file_size - offset;
+            recs[i].size = (uint32_t)remaining;
+        }
     }
 
     *out_recs = recs;
