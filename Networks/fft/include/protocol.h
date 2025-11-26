@@ -6,9 +6,12 @@
 #include <stdint.h>
 
 #define MAX_FILENAME_LEN 255                // Maximum filename length
-#define DEFAULT_RECORD_SIZE 512             // 512 Bytes
+#define DEFAULT_RECORD_SIZE 64             // 64 Bytes
 #define DEFAULT_RECORDS_PER_PACKET 16       // Number of records per packet
 #define DEFAULT_PACKETS_PER_BLAST 16        // Number of packets per blast
+
+/* Safety limit for retransmit rounds per blast to avoid infinite loops */
+#define MAX_RETRANSMIT_ROUNDS 8
 
 typedef enum {
     PKT_FILE_HDR = 1,
@@ -90,6 +93,9 @@ typedef struct {
 
 void build_pkt_file_hdr(pkt_file_hdr_t* pkt, const char* filename, uint16_t file_name_len, uint64_t file_size);
 void build_pkt_file_hdr_ack(pkt_file_hdr_ack_t* pkt, uint8_t status, uint16_t max_rec_size, uint16_t max_records_per_packet, uint16_t max_packets_per_blast);
+void build_pkt_is_blast_over(pkt_is_blast_over_t *pkt, uint32_t blast_id, uint32_t n_packets);
+void build_pkt_rec_miss_hdr(pkt_rec_miss_hdr_t *pkt, uint8_t n_missing, const uint8_t *missing_arr);
 void build_pkt_disconnect(pkt_disconnect_t* pkt, uint32_t reason_code);
+
 
 #endif  // PROTOCOL_H

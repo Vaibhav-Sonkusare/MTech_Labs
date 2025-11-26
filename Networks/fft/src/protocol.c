@@ -1,3 +1,5 @@
+// protocol.c
+
 #include <string.h>
 #include <stdint.h>
 #include "../include/protocol.h"
@@ -11,6 +13,8 @@ void build_pkt_file_hdr(pkt_file_hdr_t* pkt,
                         uint64_t file_size)
 {
     if (!pkt) return;
+
+    memset(pkt, 0, sizeof(pkt_file_hdr_t));
 
     // Packet type
     pkt->type = PKT_FILE_HDR;
@@ -44,6 +48,8 @@ void build_pkt_file_hdr_ack(pkt_file_hdr_ack_t* pkt,
 {
     if (!pkt) return;
 
+    memset(pkt, 0, sizeof(pkt_file_hdr_ack_t));
+
     pkt->type = PKT_FILE_HDR_ACK;
 
     pkt->status = status;
@@ -55,11 +61,43 @@ void build_pkt_file_hdr_ack(pkt_file_hdr_ack_t* pkt,
 }
 
 /*-----------------------------------------------------------
+  IS_BLAST_OVER Packet Builder
+-----------------------------------------------------------*/
+void build_pkt_is_blast_over(pkt_is_blast_over_t *pkt,
+                             uint32_t blast_id,
+                             uint32_t n_packets)
+{
+    memset(pkt, 0, sizeof(pkt_is_blast_over_t));
+    pkt->type = PKT_IS_BLAST_OVER;
+    pkt->blast_id = blast_id;
+    pkt->n_packets = n_packets;
+}
+
+/*-----------------------------------------------------------
+  REC_MISS_HDR Packet Builder
+-----------------------------------------------------------*/
+void build_pkt_rec_miss_hdr(pkt_rec_miss_hdr_t *pkt,
+                            uint8_t n_missing,
+                            const uint8_t *missing_arr)
+{
+    memset(pkt, 0, sizeof(pkt_rec_miss_hdr_t));
+    pkt->type = PKT_REC_MISS_HDR;
+    pkt->n_packets_missing = n_missing;
+    memcpy(pkt->is_pkt_missing,
+           missing_arr,
+           DEFAULT_PACKETS_PER_BLAST);
+}
+
+
+
+/*-----------------------------------------------------------
   DISCONNECT Packet Builder
 -----------------------------------------------------------*/
 void build_pkt_disconnect(pkt_disconnect_t* pkt, uint32_t reason_code)
 {
     if (!pkt) return;
+
+    memset(pkt, 0, sizeof(pkt_disconnect_t));
 
     pkt->type = PKT_DISCONNECT;
     pkt->reason_code = reason_code;

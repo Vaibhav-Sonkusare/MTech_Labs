@@ -1,0 +1,261 @@
+// receiver.c — Option A full implementation
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+
+#include "../include/protocol.h"
+#include "../include/net.h"
+#include "../include/blast.h"    // optional if needed later
+
+typedef enum {
+    R_IDLE,
+    R_HDR_RECV,
+    R_WAIT_BLAST,
+    R_RECEIVING_BLAST,
+    R_SEND_REC_MISS,
+    R_WAIT_DISCONNECT,
+    R_DONE
+} receiver_state_t;
+
+int main(int argc, char** argv)
+{
+    if (argc != 2) {
+        printf("Usage: %s <port>\n", argv[0]);
+        return 1;
+    }
+
+    uint16_t port = (uint16_t)atoi(argv[1]);
+
+    /* ---- Prepare socket ---- */
+    int sockfd = create_udp_socket();
+    if (sockfd < 0) return 1;
+
+    if (bind_udp_socket(sockfd, port) < 0) return 1;
+
+    printf("[Receiver] Listening on port %u...\n", port);
+
+    /* State machine variables */
+    receiver_state_t state = R_IDLE;
+
+    struct sockaddr_in sender_addr;
+
+    /* For tracking blast packets */
+    uint8_t packets_received[DEFAULT_PACKETS_PER_BLAST];  // flags
+    memset(packets_received, 0, sizeof(packets_received));
+
+    /* Temp buffer for receiving packets */
+    uint8_t recv_buf[2048];
+
+    while (state != R_DONE) {
+
+        switch (state) {
+
+        /* ---------------------------------------------------------
+         * R_IDLE → waiting for FILE_HDR
+         * --------------------------------------------------------- */
+        case R_IDLE: {
+            printf("[Receiver] Waiting for FILE_HDR...\n");
+
+            ssize_t n = udp_recv(sockfd, recv_buf, sizeof(recv_buf), &sender_addr);
+            if (n <= 0) continue;
+
+            pkt_file_hdr_t *hdr = (pkt_file_hdr_t*)recv_buf;
+
+            if (hdr->type == PKT_FILE_HDR) {
+                printf("[Receiver] Received FILE_HDR for file: %s\n", hdr->filename);
+                printf("[Receiver] File size: %lu\n", hdr->file_size);
+
+                /* Send ACK */
+                pkt_file_hdr_ack_t ack;
+                build_pkt_file_hdr_ack(&ack, 0,
+                                       hdr->_max_rec_size,
+                                       hdr->_max_records_per_packet,
+                                       hdr->_max_packets_per_blast);
+
+                udp_send(sockfd, &ack, sizeof(ack), &sender_addr);
+                printf("[Receiver] Sent FILE_HDR_ACK.\n");
+
+                state = R_WAIT_BLAST;
+            }
+            break;
+        }
+
+        /* ---------------------------------------------------------
+         * R_WAIT_BLAST → first packet of the blast OR IS_BLAST_OVER
+         * --------------------------------------------------------- */
+        case R_WAIT_BLAST: {
+            printf("[Receiver] Waiting for first BLAST_PKT or IS_BLAST_OVER...\n");
+
+            ssize_t n = udp_recv(sockfd, recv_buf, sizeof(recv_buf), &sender_addr);
+            if (n <= 0) continue;
+
+            uint8_t type = recv_buf[0];
+
+            if (type == PKT_BLAST_PACKET) {
+                pkt_blast_packet_t *bp = (pkt_blast_packet_t*)recv_buf;
+
+                memset(packets_received, 0, sizeof(packets_received));
+
+                printf("[Receiver] Started BLAST %u, expecting %u packets\n",
+                       bp->blast_id, bp->n_packets);
+
+                /* Mark packet received */
+                if (bp->packet_id < DEFAULT_PACKETS_PER_BLAST)
+                    packets_received[bp->packet_id] = 1;
+
+                /* Print record IDs */
+                for (uint32_t i = 0; i < bp->n_records; i++) {
+                    printf("    Recv record %u\n", bp->record_id[i]);
+                }
+
+                state = R_RECEIVING_BLAST;
+            }
+            else if (type == PKT_IS_BLAST_OVER) {
+                /* Sender believes blast is over → no packets received yet */
+                pkt_is_blast_over_t *iso = (pkt_is_blast_over_t*)recv_buf;
+
+                printf("[Receiver] Got IS_BLAST_OVER(blast %u) before any packets.\n",
+                       iso->blast_id);
+
+                /* Respond with empty missing list */
+                pkt_rec_miss_hdr_t miss;
+                miss.type = PKT_REC_MISS_HDR;
+                miss.n_packets_missing = 0;
+                memset(miss.is_pkt_missing, 0, sizeof(miss.is_pkt_missing));
+
+                udp_send(sockfd, &miss, sizeof(miss), &sender_addr);
+                printf("[Receiver] Sent REC_MISS(empty)\n");
+
+                state = R_WAIT_DISCONNECT;
+            }
+            break;
+        }
+
+        /* ---------------------------------------------------------
+         * R_RECEIVING_BLAST → receiving more BLAST packets OR IS_BLAST_OVER
+         * --------------------------------------------------------- */
+        case R_RECEIVING_BLAST: {
+            ssize_t n = udp_recv(sockfd, recv_buf, sizeof(recv_buf), &sender_addr);
+            if (n <= 0) continue;
+
+            uint8_t type = recv_buf[0];
+
+            if (type == PKT_BLAST_PACKET) {
+                pkt_blast_packet_t *bp = (pkt_blast_packet_t*)recv_buf;
+
+                printf("[Receiver] BLAST %u packet %u received (%u records)\n",
+                       bp->blast_id, bp->packet_id, bp->n_records);
+
+                if (bp->packet_id < DEFAULT_PACKETS_PER_BLAST)
+                    packets_received[bp->packet_id] = 1;
+
+                /* Print record IDs */
+                for (uint32_t i = 0; i < bp->n_records; i++) {
+                    printf("    Recv record %u\n", bp->record_id[i]);
+                }
+            }
+            else if (type == PKT_IS_BLAST_OVER) {
+                pkt_is_blast_over_t *iso = (pkt_is_blast_over_t*)recv_buf;
+
+                printf("[Receiver] Received IS_BLAST_OVER for blast=%u\n", iso->blast_id);
+                state = R_SEND_REC_MISS;
+            }
+            break;
+        }
+
+        /* ---------------------------------------------------------
+         * R_SEND_REC_MISS → compute missing packets; send list
+         * --------------------------------------------------------- */
+        case R_SEND_REC_MISS: {
+            printf("[Receiver] Computing missing list...\n");
+
+            pkt_rec_miss_hdr_t miss;
+            miss.type = PKT_REC_MISS_HDR;
+
+            uint8_t missing = 0;
+            uint16_t mpb = DEFAULT_PACKETS_PER_BLAST;
+
+            for (int i = 0; i < mpb; i++) {
+                miss.is_pkt_missing[i] = (packets_received[i] == 0);
+                if (miss.is_pkt_missing[i]) missing++;
+            }
+
+            miss.n_packets_missing = missing;
+
+            udp_send(sockfd, &miss, sizeof(miss), &sender_addr);
+
+            if (missing == 0)
+                printf("[Receiver] Sent REC_MISS(empty)\n");
+            else
+                printf("[Receiver] Sent REC_MISS(%u missing)\n", missing);
+
+            if (missing == 0)
+                state = R_WAIT_DISCONNECT;
+            else
+                state = R_RECEIVING_BLAST;
+
+            break;
+        }
+
+        /* ---------------------------------------------------------
+         * R_WAIT_DISCONNECT → wait for next blast or DISCONNECT
+         * --------------------------------------------------------- */
+        case R_WAIT_DISCONNECT: {
+            printf("[Receiver] Waiting for next blast or DISCONNECT...\n");
+
+            ssize_t n = udp_recv(sockfd, recv_buf, sizeof(recv_buf), &sender_addr);
+            if (n <= 0) continue;
+
+            uint8_t type = recv_buf[0];
+
+            if (type == PKT_BLAST_PACKET) {
+                /* New blast begins */
+                pkt_blast_packet_t *bp = (pkt_blast_packet_t*)recv_buf;
+
+                memset(packets_received, 0, sizeof(packets_received));
+
+                printf("[Receiver] New BLAST %u begins\n", bp->blast_id);
+
+                /* Mark packet received */
+                if (bp->packet_id < DEFAULT_PACKETS_PER_BLAST)
+                    packets_received[bp->packet_id] = 1;
+
+                for (uint32_t i = 0; i < bp->n_records; i++)
+                    printf("    Recv record %u\n", bp->record_id[i]);
+
+                state = R_RECEIVING_BLAST;
+            }
+            else if (type == PKT_IS_BLAST_OVER) {
+                /* Sender thinks this blast is over but no packets came */
+                pkt_is_blast_over_t *iso = (pkt_is_blast_over_t*)recv_buf;
+
+                printf("[Receiver] Got IS_BLAST_OVER for new blast=%u\n", iso->blast_id);
+
+                pkt_rec_miss_hdr_t miss;
+                miss.type = PKT_REC_MISS_HDR;
+                miss.n_packets_missing = 0;
+                memset(miss.is_pkt_missing, 0, sizeof(miss.is_pkt_missing));
+
+                udp_send(sockfd, &miss, sizeof(miss), &sender_addr);
+
+                printf("[Receiver] Sent REC_MISS(empty)\n");
+            }
+            else if (type == PKT_DISCONNECT) {
+                printf("[Receiver] Received DISCONNECT — closing.\n");
+                state = R_DONE;
+            }
+            break;
+        }
+
+        default:
+            state = R_DONE;
+        }
+    }
+
+    close(sockfd);
+    printf("[Receiver] Done.\n");
+    return 0;
+}

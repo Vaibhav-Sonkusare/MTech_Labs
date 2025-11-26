@@ -1,4 +1,5 @@
 // src/sender.c
+
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -15,36 +16,31 @@ typedef enum {
     S_IDLE,
     S_HDR_SENT,
     S_SENDING_BLASTS,
-    S_WAIT_REC_MISS,
-    S_LAST_BLAST_DONE,
     S_DONE
 } sender_state_t;
 
 /* Helper: send one blast packet (rebuilds pkt each time)
- * Now accepts n_packets so pkt.n_packets is set correctly before sending.
  * Returns number of bytes sent or -1 on error.
+ *
+ * Note: build_blast_packet fills the pkt structure's fields and data arrays.
+ * For simplicity we send the entire pkt_blast_packet_t structure as-is.
+ * (Your project currently uses raw struct-on-wire approach.)
  */
 static ssize_t send_blast_packet(int sockfd, const struct sockaddr_in *to,
                                  uint32_t blast_id, uint32_t packet_id,
-                                 uint32_t n_packets, /* total packets in this blast */
                                  const record_t *records, uint32_t start_idx,
                                  uint32_t nrec_total, uint16_t max_records_per_packet)
 {
     pkt_blast_packet_t pkt;
     memset(&pkt, 0, sizeof(pkt));
 
-    /* build packet payload (record ids + data) */
-    uint16_t nput = build_blast_packet(&pkt, blast_id, packet_id,
-                                       records, start_idx, nrec_total,
-                                       max_records_per_packet);
-    /* set n_packets so receiver knows how many packets to expect in this blast */
-    pkt.n_packets = (uint32_t)n_packets;
+    build_blast_packet(&pkt, blast_id, packet_id,
+                                        records, start_idx, nrec_total,
+                                        max_records_per_packet);
 
-    /* sanity */
-    pkt.type = PKT_BLAST_PACKET;
-    pkt.packet_id = packet_id;
-    pkt.n_records = nput;
-
+    /* n_packets will be set by caller (we don't know total yet here) */
+    /* For wire format consistency we set packet fields filled above. */
+    /* Send the whole struct (matches receiver expectations in current design). */
     ssize_t sent = udp_send(sockfd, &pkt, sizeof(pkt), to);
     if (sent < 0) perror("udp_send blast pkt");
     return sent;
@@ -112,10 +108,6 @@ int main(int argc, char** argv)
     sender_state_t state = S_IDLE;
     uint32_t blast_id = 1;
 
-    /* variables used across states */
-    uint32_t last_packets_in_blast = 0;
-    uint32_t last_blast_start_index = 0;
-
     while (state != S_DONE) {
 
         switch (state) {
@@ -140,13 +132,11 @@ int main(int argc, char** argv)
                     printf("[Sender] Received ACK! Status=%u\n", ack.status);
 
                     if (ack.status != 0) {
+                        // Adjust parameters if needed (receiver suggested)
                         if (ack._max_records_per_packet > 0)
                             max_records_per_packet = ack._max_records_per_packet;
                         if (ack._max_packets_per_blast > 0)
                             max_packets_per_blast = ack._max_packets_per_blast;
-
-                        if (max_packets_per_blast > DEFAULT_PACKETS_PER_BLAST)
-                            max_packets_per_blast = DEFAULT_PACKETS_PER_BLAST;
 
                         records_per_blast = (uint32_t)max_records_per_packet * (uint32_t)max_packets_per_blast;
                         total_blasts = (nrec + records_per_blast - 1) / records_per_blast;
@@ -154,6 +144,7 @@ int main(int argc, char** argv)
                         printf("[Sender] Adjusted max_records_per_packet=%u, max_packets_per_blast=%u\n",
                                max_records_per_packet, max_packets_per_blast);
                     }
+                    /* move to sending blasts */
                     state = S_SENDING_BLASTS;
                 }
                 break;
@@ -161,32 +152,30 @@ int main(int argc, char** argv)
 
             case S_SENDING_BLASTS: {
                 if (blast_id > total_blasts) {
-                    state = S_LAST_BLAST_DONE;
+                    /* All blasts done => send DISCONNECT then finish */
+                    printf("[Sender] All blasts sent. Sending DISCONNECT...\n");
+                    pkt_disconnect_t disc;
+                    build_pkt_disconnect(&disc, 0);
+                    udp_send(sockfd, &disc, sizeof(disc), &receiver_addr);
+                    state = S_DONE;
                     break;
                 }
 
-                /* Compute this blast's range */
-                uint32_t blast_start_rec_index = (blast_id - 1) * records_per_blast; /* 0-based index */
+                /* Compute blast boundaries */
+                uint32_t blast_start_rec_index = (blast_id - 1) * records_per_blast; /* 0-based index into records[] */
                 uint32_t remain = (blast_start_rec_index >= nrec) ? 0 : (nrec - blast_start_rec_index);
                 uint32_t packets_in_this_blast = (remain + max_records_per_packet - 1) / max_records_per_packet;
-                if (packets_in_this_blast == 0) packets_in_this_blast = 1;
-
-                if (packets_in_this_blast > max_packets_per_blast)
-                    packets_in_this_blast = max_packets_per_blast;
-
-                last_packets_in_blast = packets_in_this_blast;
-                last_blast_start_index = blast_start_rec_index;
+                if (packets_in_this_blast == 0) packets_in_this_blast = 1; /* at least one packet */
 
                 printf("[Sender] Sending blast %u: records [%u .. %u], packets=%u\n",
                        blast_id, blast_start_rec_index + 1,
-                       (uint32_t)(blast_start_rec_index + remain), (unsigned)packets_in_this_blast);
+                       (uint32_t)(blast_start_rec_index + remain), (uint32_t)packets_in_this_blast);
 
-                /* Send all packets that belong to this blast (packet_id 0..packets_in_this_blast-1) */
+                /* Send all packets that belong to this blast */
                 for (uint32_t pkt_idx = 0; pkt_idx < packets_in_this_blast; ++pkt_idx) {
                     uint32_t rec_start = blast_start_rec_index + pkt_idx * max_records_per_packet;
                     ssize_t sent = send_blast_packet(sockfd, &receiver_addr,
-                                                     blast_id, pkt_idx,
-                                                     packets_in_this_blast,
+                                                     blast_id, (uint32_t)pkt_idx,
                                                      records, rec_start, nrec,
                                                      max_records_per_packet);
                     if (sent < 0) {
@@ -195,86 +184,66 @@ int main(int argc, char** argv)
                     }
                 }
 
-                /* After sending the blast packets, send IS_BLAST_OVER and move to wait for REC_MISS */
+                /* After sending the blast packets, send IS_BLAST_OVER */
                 pkt_is_blast_over_t iso;
                 build_pkt_is_blast_over(&iso, blast_id, packets_in_this_blast);
-                if (udp_send(sockfd, &iso, sizeof(iso), &receiver_addr) < 0) {
-                    perror("udp_send IS_BLAST_OVER");
-                } else {
-                    printf("[Sender] Sent IS_BLAST_OVER (blast=%u, packets=%u)\n", blast_id, (unsigned)packets_in_this_blast);
-                }
-
-                state = S_WAIT_REC_MISS;
-                break;
-            }
-
-            case S_WAIT_REC_MISS: {
-                /* Wait for REC_MISS and retransmit missing packets until empty */
-                pkt_rec_miss_hdr_t miss;
-                struct sockaddr_in from;
-                ssize_t rn = udp_recv(sockfd, &miss, sizeof(miss), &from);
-
-                if (rn <= 0) {
-                    /* blocking wait; in real implementation we would add a timeout to retransmit IS_BLAST_OVER */
-                    continue;
-                }
-
-                if (miss.type != PKT_REC_MISS_HDR) {
-                    /* ignore unrelated packets */
-                    continue;
-                }
-
-                printf("[Sender] Got REC_MISS for blast=%u missing=%u\n", blast_id, (unsigned)miss.n_packets_missing);
-
-                if (miss.n_packets_missing == 0) {
-                    /* Blast complete. If this was the last blast, go to LAST_BLAST_DONE else next blast. */
-                    if (blast_id >= total_blasts) {
-                        state = S_LAST_BLAST_DONE;
-                    } else {
-                        blast_id++;
-                        state = S_SENDING_BLASTS;
-                    }
-                    break;
-                }
-
-                /* Retransmit missing packets */
-                for (uint32_t i = 0; i < max_packets_per_blast; ++i) {
-                    if (i >= DEFAULT_PACKETS_PER_BLAST) break; /* safety */
-                    if (miss.is_pkt_missing[i]) {
-                        uint32_t pkt_idx = i;
-                        uint32_t rec_start = last_blast_start_index + pkt_idx * max_records_per_packet;
-
-                        printf("[Sender] Retransmitting blast %u packet %u (rec_start=%u)\n",
-                               blast_id, pkt_idx, rec_start + 1);
-
-                        ssize_t sent = send_blast_packet(sockfd, &receiver_addr,
-                                                         blast_id, pkt_idx,
-                                                         last_packets_in_blast,
-                                                         records, rec_start, nrec,
-                                                         max_records_per_packet);
-                        if (sent < 0) {
-                            fprintf(stderr, "[Sender] Failed to retransmit packet %u for blast %u\n",
-                                    (unsigned)pkt_idx, (unsigned)blast_id);
-                        }
-                    }
-                }
-
-                /* After retransmits, send IS_BLAST_OVER again to get fresh REC_MISS */
-                pkt_is_blast_over_t iso;
-                build_pkt_is_blast_over(&iso, blast_id, last_packets_in_blast);
+                printf("[Sender] Sent IS_BLAST_OVER (blast=%u, packets=%u)\n", blast_id, (unsigned)packets_in_this_blast);
                 udp_send(sockfd, &iso, sizeof(iso), &receiver_addr);
-                printf("[Sender] Sent IS_BLAST_OVER (retransmit round) for blast=%u\n", blast_id);
-                /* remain in S_WAIT_REC_MISS to wait for next REC_MISS */
-                break;
-            }
 
-            case S_LAST_BLAST_DONE: {
-                /* Send DISCONNECT, then finish. */
-                printf("[Sender] All blasts done. Sending DISCONNECT...\n");
-                pkt_disconnect_t disc;
-                build_pkt_disconnect(&disc, 0);
-                udp_send(sockfd, &disc, sizeof(disc), &receiver_addr);
-                state = S_DONE;
+                /* Enter a loop: wait for REC_MISS and potentially retransmit until empty */
+                for (;;) {
+                    pkt_rec_miss_hdr_t miss;
+                    struct sockaddr_in from;
+                    ssize_t rn = udp_recv(sockfd, &miss, sizeof(miss), &from);
+
+                    if (rn <= 0) {
+                        /* In a more complete implementation, we would implement timeout & retransmit IS_BLAST_OVER.
+                           For now, we block waiting for REC_MISS. */
+                        continue;
+                    }
+
+                    if (miss.type != PKT_REC_MISS_HDR) {
+                        /* ignore unrelated packets */
+                        continue;
+                    }
+
+                    printf("[Sender] Got REC_MISS for blast=%u missing=%u\n", blast_id, (unsigned)miss.n_packets_missing);
+
+                    if (miss.n_packets_missing == 0) {
+                        /* Blast is complete: proceed to next blast */
+                        printf("[Sender] Blast %u completed with no missing packets.\n", blast_id);
+                        blast_id++;
+                        break; /* exit retransmit loop -> proceed to next blast */
+                    }
+
+                    /* Retransmit missing packets (simple approach: iterate over boolean array) */
+                    for (uint32_t i = 0; i < max_packets_per_blast; ++i) {
+                        if (i >= DEFAULT_PACKETS_PER_BLAST) break; /* safety */
+                        if (miss.is_pkt_missing[i]) {
+                            uint32_t pkt_idx = i;
+                            uint32_t rec_start = blast_start_rec_index + pkt_idx * max_records_per_packet;
+
+                            printf("[Sender] Retransmitting blast %u packet %u (rec_start=%u)\n",
+                                   blast_id, pkt_idx, rec_start + 1);
+
+                            ssize_t sent = send_blast_packet(sockfd, &receiver_addr,
+                                                             blast_id, pkt_idx,
+                                                             records, rec_start, nrec,
+                                                             max_records_per_packet);
+                            if (sent < 0) {
+                                fprintf(stderr, "[Sender] Failed to retransmit packet %u for blast %u\n", (unsigned)pkt_idx, (unsigned)blast_id);
+                            }
+                        }
+                    } /* end retransmit loop */
+
+                    /* After retransmits, sender must send IS_BLAST_OVER again to get fresh REC_MISS */
+                    build_pkt_is_blast_over(&iso, blast_id, packets_in_this_blast);
+                    udp_send(sockfd, &iso, sizeof(iso), &receiver_addr);
+                    printf("[Sender] Sent IS_BLAST_OVER (retransmit round) for blast=%u\n", blast_id);
+                    /* loop to wait for next REC_MISS */
+                } /* end retransmit loop */
+
+                /* Continue into next blast (loop of FSM) */
                 break;
             }
 
