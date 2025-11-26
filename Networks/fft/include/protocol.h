@@ -4,6 +4,7 @@
 #define PROTOCOL_H
 
 #include <stdint.h>
+#include <errno.h>
 
 #define MAX_FILENAME_LEN 255                // Maximum filename length
 #define DEFAULT_RECORD_SIZE 64             // 64 Bytes
