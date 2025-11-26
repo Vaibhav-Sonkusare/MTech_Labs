@@ -1,4 +1,5 @@
-// src/receiver.c — Option A receiver implementation
+// src/receiver.c
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,12 +24,14 @@ typedef enum {
 
 int main(int argc, char** argv)
 {
-    if (argc != 3) {
-        printf("Usage: %s <port> <output_filename>\n", argv[0]);
+    if (argc != 4) {
+        printf("Usage: %s <port> <output_filename> <loss_rate>\n", argv[0]);
         return 1;
     }
 
     uint16_t port = (uint16_t)atoi(argv[1]);
+    double loss_rate = atof(argv[3]);
+    net_set_loss_rate(loss_rate);
 
     /* ---- Prepare socket ---- */
     int sockfd = create_udp_socket();
@@ -65,6 +68,10 @@ int main(int argc, char** argv)
     char out_filename[MAX_FILENAME_LEN + 32];
     uint64_t total_file_size = 0;
     uint32_t total_records_expected = 0;
+
+    /* cache last REC_MISS to allow retransmission on timeout */
+    pkt_rec_miss_hdr_t last_miss_sent;
+    memset(&last_miss_sent, 0, sizeof(last_miss_sent));
 
     while (state != R_DONE) {
         switch (state) {
@@ -174,6 +181,22 @@ int main(int argc, char** argv)
                     printf("[Receiver] Sent REC_MISS(empty)\n");
 
                     state = R_WAIT_DISCONNECT;
+                } else if (type == PKT_FILE_HDR) {
+                    // pkt_file_hdr_t *hdr = (pkt_file_hdr_t*)recv_buf;
+
+                    printf("[Receiver] Duplicate FILE_HDR received in R_WAIT_BLAST. Resending ACK...\n");
+
+                    pkt_file_hdr_ack_t ack;
+                    build_pkt_file_hdr_ack(&ack, 0,
+                                        DEFAULT_RECORD_SIZE,
+                                        DEFAULT_RECORDS_PER_PACKET,
+                                        DEFAULT_PACKETS_PER_BLAST);
+
+                    udp_send(sockfd, &ack, sizeof(ack), &sender_addr);
+                    printf("[Receiver] Re-sent FILE_HDR_ACK.\n");
+
+                    /* Stay in R_WAIT_BLAST */
+                    break;
                 }
                 break;
             }
@@ -217,6 +240,7 @@ int main(int argc, char** argv)
             case R_SEND_REC_MISS: {
                 /* compute missing packets using packets_received[] */
                 pkt_rec_miss_hdr_t miss;
+                memset(&miss, 0, sizeof(miss));
                 miss.type = PKT_REC_MISS_HDR;
                 uint8_t missing = 0;
                 /* Only check packets that this blast is supposed to have */
@@ -232,6 +256,7 @@ int main(int argc, char** argv)
                 }
 
                 miss.n_packets_missing = missing;
+                last_miss_sent = miss; /* cache for potential retransmission */
 
                 udp_send(sockfd, &miss, sizeof(miss), &sender_addr);
                 if (missing == 0) {
@@ -271,6 +296,14 @@ int main(int argc, char** argv)
 
                 /* Now wait for either next blast packet, new IS_BLAST_OVER (rare) or DISCONNECT */
                 ssize_t n = udp_recv(sockfd, recv_buf, sizeof(recv_buf), &sender_addr);
+
+                // if (n < 0 && errno == EWOULDBLOCK) {
+                //     /* Sender might have missed REC_MISS (loss)
+                //     → retransmit the last miss message */
+                //     udp_send(sockfd, &last_miss_sent, sizeof(last_miss_sent), &sender_addr);
+                //     continue;
+                // }
+
                 if (n <= 0) continue;
 
                 uint8_t type = recv_buf[0];
@@ -325,5 +358,13 @@ int main(int argc, char** argv)
     if (blast_blob) free(blast_blob);
     close(sockfd);
     printf("[Receiver] Done.\n");
+
+    net_stats_t st = net_get_stats();
+    printf("\n[NET-STATS]\n");
+    printf(" Sent packets:     %lu\n", st.sent_pkts);
+    printf(" Received packets: %lu\n", st.recv_pkts);
+    printf(" Dropped outgoing: %lu\n", st.dropped_outgoing);
+    printf(" Dropped incoming: %lu\n", st.dropped_incoming);
+
     return 0;
 }

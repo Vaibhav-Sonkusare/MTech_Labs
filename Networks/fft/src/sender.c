@@ -52,14 +52,16 @@ static ssize_t send_blast_packet(int sockfd, const struct sockaddr_in *to,
 
 int main(int argc, char** argv)
 {
-    if (argc != 4) {
-        printf("Usage: %s <receiver_ip> <port> <filename>\n", argv[0]);
+    if (argc != 5) {
+        printf("Usage: %s <receiver_ip> <port> <filename> <loss_rate>\n", argv[0]);
         return 1;
     }
 
     const char* receiver_ip = argv[1];
     uint16_t port = (uint16_t)atoi(argv[2]);
     const char* filename = argv[3];
+    double loss_rate = atof(argv[4]);
+    net_set_loss_rate(loss_rate);
 
     /* ---- Read file & slice into records ---- */
     record_t *records = NULL;
@@ -132,30 +134,60 @@ int main(int argc, char** argv)
 
             case S_HDR_SENT: {
                 printf("[Sender] Waiting for FILE_HDR_ACK...\n");
+
                 pkt_file_hdr_ack_t ack;
                 struct sockaddr_in from;
-                ssize_t n = udp_recv(sockfd, &ack, sizeof(ack), &from);
 
-                if (n > 0 && ack.type == PKT_FILE_HDR_ACK) {
-                    printf("[Sender] Received ACK! Status=%u\n", ack.status);
+                int retries = 5;
 
-                    if (ack.status != 0) {
-                        if (ack._max_records_per_packet > 0)
-                            max_records_per_packet = ack._max_records_per_packet;
-                        if (ack._max_packets_per_blast > 0)
-                            max_packets_per_blast = ack._max_packets_per_blast;
+                while (retries-- > 0) {
 
-                        if (max_packets_per_blast > DEFAULT_PACKETS_PER_BLAST)
-                            max_packets_per_blast = DEFAULT_PACKETS_PER_BLAST;
+                    ssize_t n = udp_recv(sockfd, &ack, sizeof(ack), &from);
 
-                        records_per_blast = (uint32_t)max_records_per_packet * (uint32_t)max_packets_per_blast;
-                        total_blasts = (nrec + records_per_blast - 1) / records_per_blast;
+                    if (n > 0 && ack.type == PKT_FILE_HDR_ACK) {
+                        printf("[Sender] Received ACK! Status=%u\n", ack.status);
 
-                        printf("[Sender] Adjusted max_records_per_packet=%u, max_packets_per_blast=%u\n",
-                               max_records_per_packet, max_packets_per_blast);
+                        /* Adjust parameters if needed */
+                        if (ack.status != 0) {
+                            if (ack._max_records_per_packet > 0)
+                                max_records_per_packet = ack._max_records_per_packet;
+                            if (ack._max_packets_per_blast > 0)
+                                max_packets_per_blast = ack._max_packets_per_blast;
+
+                            if (max_packets_per_blast > DEFAULT_PACKETS_PER_BLAST)
+                                max_packets_per_blast = DEFAULT_PACKETS_PER_BLAST;
+
+                            records_per_blast =
+                                (uint32_t)max_records_per_packet *
+                                (uint32_t)max_packets_per_blast;
+
+                            total_blasts = (nrec + records_per_blast - 1) / records_per_blast;
+
+                            printf("[Sender] Adjusted max_records_per_packet=%u, max_packets_per_blast=%u\n",
+                                max_records_per_packet, max_packets_per_blast);
+                        }
+
+                        state = S_SENDING_BLASTS;
+                        break;     // exit retry loop
                     }
-                    state = S_SENDING_BLASTS;
+
+                    /* Timeout or wrong packet → retransmit FILE_HDR */
+                    printf("[Sender] No ACK (timeout or loss). Resending FILE_HDR... (%d retries left)\n",
+                        retries);
+
+                    if (udp_send(sockfd, &hdr, sizeof(hdr), &receiver_addr) < 0) {
+                        perror("udp_send FILE_HDR");
+                        state = S_DONE;
+                        break;
+                    }
                 }
+
+                if (state == S_HDR_SENT) {
+                    /* Exhausted retries */
+                    fprintf(stderr, "[Sender] ERROR: No FILE_HDR_ACK after retries. Aborting.\n");
+                    state = S_DONE;
+                }
+
                 break;
             }
 
@@ -215,8 +247,18 @@ int main(int argc, char** argv)
                 ssize_t rn = udp_recv(sockfd, &miss, sizeof(miss), &from);
 
                 if (rn <= 0) {
-                    /* blocking wait; in real implementation we would add a timeout to retransmit IS_BLAST_OVER */
-                    continue;
+                    if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                        /* Timeout → retransmit IS_BLAST_OVER */
+                        printf("[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER...\n");
+
+                        pkt_is_blast_over_t iso;
+                        build_pkt_is_blast_over(&iso, blast_id, last_packets_in_blast);
+                        udp_send(sockfd, &iso, sizeof(iso), &receiver_addr);
+
+                        continue;   // stay in S_WAIT_REC_MISS
+                    }
+
+                    continue;  // some other recv error → ignore (rare)
                 }
 
                 if (miss.type != PKT_REC_MISS_HDR) {
@@ -289,5 +331,13 @@ int main(int argc, char** argv)
     free_records(records, nrec);
 
     printf("[Sender] Done.\n");
+
+    net_stats_t st = net_get_stats();
+    printf("\n[NET-STATS]\n");
+    printf(" Sent packets:     %lu\n", st.sent_pkts);
+    printf(" Received packets: %lu\n", st.recv_pkts);
+    printf(" Dropped outgoing: %lu\n", st.dropped_outgoing);
+    printf(" Dropped incoming: %lu\n", st.dropped_incoming);
+
     return 0;
 }
