@@ -1,0 +1,48 @@
+{
+  "SettingsVersion": 1.2,
+  "SimMode": "Multirotor",
+  "ViewMode": "FlyWithMe",
+  "KeyboardJoystick": {
+    "Enabled": true,
+    "YawScale": 0.5,
+    "ThrottleScale": 0.5,
+    "PitchScale": 0.5,
+    "RollScale": 0.5
+  },
+  "CameraDefaults": {
+    "CaptureSettings": [
+      {
+        "ImageType": 0,
+        "Width": 1280,
+        "Height": 720,
+        "FOV_Degrees": 90
+      },
+      {
+        "ImageType": 1,
+        "Width": 1280,
+        "Height": 720,
+        "FOV_Degrees": 90
+      }
+    ]
+  },
+  "SubWindows": [
+    {
+      "WindowID": 0,
+      "CameraName": "0",
+      "ImageType": 0,
+      "Visible": true
+    },
+    {
+      "WindowID": 1,
+      "CameraName": "0",
+      "ImageType": 1,
+      "Visible": false
+    },
+    {
+      "WindowID": 2,
+      "CameraName": "0",
+      "ImageType": 5,
+      "Visible": false
+    }
+  ]
+}
