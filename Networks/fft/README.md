@@ -66,18 +66,21 @@ After the academic submission, this project is being **extended and refactored**
 ## Current Limitations
 
 - Performance degrades for **large files (≥ 1 MB)** under non-zero loss
+- Sender process reads the whole file into memory at a time instead of reading data required per blast
 - No congestion control or adaptive rate limiting
 - Fixed timeout values (not RTT-based)
 - Statistics collection is basic and not yet standardized
 - No checksum or data integrity verification beyond packet presence
 
-These limitations are **known and intentional** at this stage and form the basis for future enhancements.
+These limitations are known at this stage and form the basis for future enhancements.
 
 ---
 
 ## Planned Enhancements (Post-Submission)
 
 - Improved retransmission strategy for high-loss scenarios
+- Sender will only read data that will be sent in the current blast
+- Sender will discard data after it is confirmed to be received by receiver
 - Per-blast and per-packet statistics:
   - Packet loss count
   - Retransmission count
@@ -102,8 +105,8 @@ These limitations are **known and intentional** at this stage and form the basis
 
 ## Academic Context
 
-- **Course**: Computer Networks (M.Tech)
-- **Project Type**: Term Project
+- **Course**: Advanced Networks Principles and Protocols (M.Tech)
+- **Project Type**: Lab Project
 - **Evaluation**: FSM design, protocol correctness, robustness under loss
 
 FSM diagrams for both sender and receiver were designed and submitted as part of the evaluation.
