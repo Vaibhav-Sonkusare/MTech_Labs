@@ -3,11 +3,21 @@
 #ifndef FILEIO_H
 #define FILEIO_H
 
-#include <stdint.h>
 #include "../include/record.h"
+#include <stdint.h>
 
-int read_file_to_records(const char *path, uint16_t rec_size,
-                         record_t **out_recs, uint32_t *out_nrec, uint64_t *out_file_size);
-void free_records(record_t *recs, uint32_t nrec);
+#include <stdio.h>
+
+/* Opens the file for reading. Returns NULL on error. */
+FILE *file_open_read(const char *path, uint64_t *out_file_size);
+
+/*
+ * Reads up to 'size' bytes into 'buf'.
+ * Returns number of bytes read, or -1 on error.
+ * Handles zero-padding if less bytes are available and we want full chunks?
+ * Actually, caller should handle padding logic if needed, but for record
+ * splitting we can just read what's there and let the sender fill zeros.
+ */
+int file_read_chunk(FILE *f, uint8_t *buf, int size);
 
 #endif
