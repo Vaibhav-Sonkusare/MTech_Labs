@@ -62,9 +62,22 @@ int main(int argc, char **argv) {
   }
 
   const char *receiver_ip = argv[1];
-  uint16_t port = (uint16_t)atoi(argv[2]);
+
+  char *endptr;
+  long port_l = strtol(argv[2], &endptr, 10);
+  if (*endptr != '\0' || port_l <= 0 || port_l > 65535) {
+    fprintf(stderr, "Invalid port: %s\n", argv[2]);
+    return 1;
+  }
+  uint16_t port = (uint16_t)port_l;
+
   const char *filename = argv[3];
-  double loss_rate = atof(argv[4]);
+
+  double loss_rate = strtod(argv[4], &endptr);
+  if (*endptr != '\0' || loss_rate < 0.0 || loss_rate > 1.0) {
+    fprintf(stderr, "Invalid loss rate (must be 0.0-1.0): %s\n", argv[4]);
+    return 1;
+  }
   net_set_loss_rate(loss_rate);
 
   /* ---- Read file info ---- */

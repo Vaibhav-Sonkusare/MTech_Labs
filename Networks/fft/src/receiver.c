@@ -27,9 +27,20 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // TODO: validate args
-  uint16_t port = (uint16_t)atoi(argv[1]);
-  double loss_rate = atof(argv[3]);
+  // Validate args
+  char *endptr;
+  long port_l = strtol(argv[1], &endptr, 10);
+  if (*endptr != '\0' || port_l <= 0 || port_l > 65535) {
+    fprintf(stderr, "Invalid port: %s\n", argv[1]);
+    return 1;
+  }
+  uint16_t port = (uint16_t)port_l;
+
+  double loss_rate = strtod(argv[3], &endptr);
+  if (*endptr != '\0' || loss_rate < 0.0 || loss_rate > 1.0) {
+    fprintf(stderr, "Invalid loss rate (must be 0.0-1.0): %s\n", argv[3]);
+    return 1;
+  }
   net_set_loss_rate(loss_rate);
 
   /* ---- Prepare socket ---- */
@@ -89,8 +100,28 @@ int main(int argc, char **argv) {
         continue;
 
       /* copy filename & open file */
+      /* Sanitize filename: use strictly the basename to prevent traversal */
+      char *safe_basename = strrchr(hdr->filename, '/');
+      if (safe_basename) {
+        safe_basename++; /* skip the slash */
+      } else {
+        safe_basename = hdr->filename;
+      }
+
+      /* Also skip backslashes just in case windows sender */
+      char *safe_basename_win = strrchr(safe_basename, '\\');
+      if (safe_basename_win) {
+        safe_basename = safe_basename_win + 1;
+      }
+
+      /* If empty after sanitization, use default */
+      if (*safe_basename == '\0' || strcmp(safe_basename, ".") == 0 ||
+          strcmp(safe_basename, "..") == 0) {
+        safe_basename = "default_output.bin";
+      }
+
       snprintf(out_filename, sizeof(out_filename), "data/output/%.*s",
-               MAX_FILENAME_LEN, argv[2]);
+               MAX_FILENAME_LEN, safe_basename);
       outf = fopen(out_filename, "wb");
       if (!outf) {
         perror("fopen output");
