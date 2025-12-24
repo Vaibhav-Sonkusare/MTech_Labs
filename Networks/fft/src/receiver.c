@@ -6,11 +6,10 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "../include/blast.h"
-#include "../include/fileio.h"
 #include "../include/net.h"
 #include "../include/protocol.h"
-#include "../include/record.h"
+#define MAX_FILENAME_LEN 255
+#define MAX_RETRIES 10
 
 typedef enum {
   R_IDLE,
@@ -144,10 +143,34 @@ int main(int argc, char **argv) {
     }
 
     case R_WAIT_BLAST: {
-      printf("[Receiver] Waiting for first BLAST_PKT or IS_BLAST_OVER...\n");
+      static int wait_blast_retries = 0;
+      printf("[Receiver] Waiting for first BLAST_PKT or IS_BLAST_OVER... (try "
+             "%d)\n",
+             wait_blast_retries + 1);
       ssize_t n = udp_recv(sockfd, recv_buf, sizeof(recv_buf), &sender_addr);
-      if (n <= 0)
+      if (n <= 0) {
+        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+          wait_blast_retries++;
+          if (wait_blast_retries > MAX_RETRIES) {
+            fprintf(
+                stderr,
+                "[Receiver] Timed out waiting for blast start. Aborting.\n");
+            state = R_DONE;
+            break;
+          }
+          /* Should we re-send FILE_HDR_ACK? The sender might have missed it. */
+          /* Yes, if we are stuck here, sender might be stuck in S_HDR_SENT
+           * waiting for ACK. */
+          pkt_file_hdr_ack_t ack;
+          build_pkt_file_hdr_ack(&ack, 0, DEFAULT_RECORD_SIZE,
+                                 DEFAULT_RECORDS_PER_PACKET,
+                                 DEFAULT_PACKETS_PER_BLAST);
+          udp_send(sockfd, &ack, sizeof(ack), &sender_addr);
+        }
         continue;
+      }
+
+      wait_blast_retries = 0; /* Got something */
 
       uint8_t type = recv_buf[0];
       if (type == PKT_BLAST_PACKET) {
@@ -232,9 +255,20 @@ int main(int argc, char **argv) {
 
     case R_RECEIVING_BLAST: {
       /* keep receiving packets until IS_BLAST_OVER */
+      static int recv_blast_retries = 0;
       ssize_t n = udp_recv(sockfd, recv_buf, sizeof(recv_buf), &sender_addr);
-      if (n <= 0)
+      if (n <= 0) {
+        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+          recv_blast_retries++;
+          if (recv_blast_retries > MAX_RETRIES) {
+            fprintf(stderr, "[Receiver] Timed out mid-blast. Aborting.\n");
+            state = R_DONE;
+            break;
+          }
+        }
         continue;
+      }
+      recv_blast_retries = 0;
 
       uint8_t type = recv_buf[0];
       if (type == PKT_BLAST_PACKET) {

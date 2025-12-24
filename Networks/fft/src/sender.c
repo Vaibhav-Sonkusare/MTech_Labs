@@ -11,6 +11,9 @@
 #include "../include/net.h"
 #include "../include/protocol.h"
 #include "../include/record.h"
+#define MAX_FILENAME_LEN 255
+#define MAX_RETRIES 5
+#define RETRY_TIMEOUT_SEC 1
 
 typedef enum {
   S_IDLE,
@@ -153,10 +156,9 @@ int main(int argc, char **argv) {
       pkt_file_hdr_ack_t ack;
       struct sockaddr_in from;
 
-      int retries = 5;
+      int retries = MAX_RETRIES;
 
-      while (retries-- > 0) {
-
+      while (retries > 0) {
         ssize_t n = udp_recv(sockfd, &ack, sizeof(ack), &from);
 
         if (n > 0 && ack.type == PKT_FILE_HDR_ACK) {
@@ -190,21 +192,27 @@ int main(int argc, char **argv) {
         }
 
         /* Timeout or wrong packet → retransmit FILE_HDR */
-        printf("[Sender] No ACK (timeout or loss). Resending FILE_HDR... (%d "
-               "retries left)\n",
-               retries);
+        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+          retries--;
+          printf("[Sender] No ACK (timeout). Resending FILE_HDR... (%d "
+                 "retries left)\n",
+                 retries);
 
-        if (udp_send(sockfd, &hdr, sizeof(hdr), &receiver_addr) < 0) {
-          perror("udp_send FILE_HDR");
-          state = S_DONE;
-          break;
+          if (udp_send(sockfd, &hdr, sizeof(hdr), &receiver_addr) < 0) {
+            perror("udp_send FILE_HDR");
+            state = S_DONE;
+            break;
+          }
         }
+        /* else if other error, ignore or break */
       }
 
       if (state == S_HDR_SENT) {
-        /* Exhausted retries */
-        fprintf(stderr,
-                "[Sender] ERROR: No FILE_HDR_ACK after retries. Aborting.\n");
+        /* Exhausted retries or error */
+        if (retries <= 0) {
+          fprintf(stderr,
+                  "[Sender] ERROR: No FILE_HDR_ACK after retries. Aborting.\n");
+        }
         state = S_DONE;
       }
 
@@ -336,6 +344,7 @@ int main(int argc, char **argv) {
 
     case S_WAIT_REC_MISS: {
       /* Wait for REC_MISS and retransmit missing packets until empty */
+      static int miss_retries = 0;
       pkt_rec_miss_hdr_t miss;
       struct sockaddr_in from;
       ssize_t rn = udp_recv(sockfd, &miss, sizeof(miss), &from);
@@ -343,8 +352,19 @@ int main(int argc, char **argv) {
       if (rn <= 0) {
         if (errno == EWOULDBLOCK || errno == EAGAIN) {
           /* Timeout → retransmit IS_BLAST_OVER */
+          miss_retries++;
+          if (miss_retries > MAX_RETRIES) {
+            fprintf(stderr,
+                    "[Sender] Max retries reached waiting for REC_MISS (blast "
+                    "%u). Aborting.\n",
+                    blast_id);
+            state = S_DONE;
+            break;
+          }
+
           printf("[Sender] Timeout waiting for REC_MISS → retransmitting "
-                 "IS_BLAST_OVER...\n");
+                 "IS_BLAST_OVER... (%d/%d)\n",
+                 miss_retries, MAX_RETRIES);
 
           pkt_is_blast_over_t iso;
           build_pkt_is_blast_over(&iso, blast_id, last_packets_in_blast);
@@ -354,6 +374,8 @@ int main(int argc, char **argv) {
         }
         continue; // some other recv error → ignore
       }
+
+      miss_retries = 0;
 
       if (miss.type != PKT_REC_MISS_HDR) {
         /* ignore unrelated packets */
