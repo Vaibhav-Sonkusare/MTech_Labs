@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
         sinkApps.Start(Seconds(0.0));
         sinkApps.Stop(Seconds(5.0));
 
-        // CBR sender on n1
+        // CBR (Constant Bit Rate) sender on n1
         OnOffHelper onoff("ns3::UdpSocketFactory", sinkAddress);
         onoff.SetAttribute("DataRate", StringValue("1Mbps"));         // 1 Mbps
         onoff.SetAttribute("PacketSize", UintegerValue(1024));        // 1 kB
