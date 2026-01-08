@@ -21,9 +21,7 @@ int main(int argc, char *argv[])
 
     for (uint32_t N : nodeCounts)
     {
-        std::cout << "\n=============================\n";
-        std::cout << " Simulation for N = " << N << " nodes\n";
-        std::cout << "=============================\n";
+        std::cout << "\n\n\n\nN = " << N << "\n";
 
         // ---------- 1. Create nodes ----------
         NodeContainer nodes;
