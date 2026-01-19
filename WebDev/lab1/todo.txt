@@ -1,0 +1,1 @@
+Create a Static Webpage with only using HTML and CSS that looks like NITT website. You can add videos and images too.

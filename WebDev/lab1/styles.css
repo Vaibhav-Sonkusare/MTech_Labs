@@ -1,0 +1,108 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.topnav {
+    background-color: #333;
+    overflow: hidden;
+}
+
+.topnav a {
+    float: left;
+    color: #f2f2f2;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+    font-size: 17px;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: #f4f6f8;
+    color: #333;
+    line-height: 1.6;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+    color: #142438;
+    margin-bottom: 20px;
+}
+
+h2 {
+    color: #0b5394;
+    margin-top: 30px;
+    margin-bottom: 10px;
+}
+
+p {
+    margin-bottom: 15px;
+}
+
+ul {
+    margin-left: 30px;
+    margin-bottom: 15px;
+}
+
+li {
+    margin-bottom: 5px;
+}
+
+a {
+    color: #1a73e8;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+iframe {
+    display: block;
+    margin: 20px auto;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+}
+
+#wildlife-video {
+    max-width: 100%;
+}
+
+form {
+    background-color: #ffffff;
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 10px;
+    max-width: 400px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+form input[type="radio"] {
+    margin-right: 5px;
+}
+
+form input[type="submit"] {
+    margin-top: 15px;
+    padding: 10px 15px;
+    background-color: #1a73e8;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+form input[type="submit"]:hover {
+    background-color: #0b5394;
+}
+
+footer {
+    margin-top: 40px;
+    padding-top: 15px;
+    border-top: 2px solid #ccc;
+    text-align: center;
+    font-size: 14px;
+    color: #555;
+}
