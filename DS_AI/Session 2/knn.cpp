@@ -47,8 +47,7 @@ vector<DataPoint> loadCSV(const string& filename) {
     return data;
 }
 
-double euclideanDistance(const vector<double>& a,
-                         const vector<double>& b) {
+double euclideanDistance(const vector<double>& a, const vector<double>& b) {
     double sum = 0.0;
     for (size_t i = 0; i < a.size(); i++)
         sum += pow(a[i] - b[i], 2);
@@ -119,40 +118,6 @@ void computeMetrics(const vector<Prediction>& preds) {
     cout << "F1 Score  : " << f1 << endl;
 }
 
-/* ---------------- ROC & AUC ---------------- */
-
-void computeROC_AUC(vector<Prediction> preds) {
-    sort(preds.begin(), preds.end(),
-         [](auto& a, auto& b) { return a.prob > b.prob; });
-
-    int P = 0, N = 0;
-    for (auto& p : preds)
-        p.actual == 1 ? P++ : N++;
-
-    double TP = 0, FP = 0;
-    double prevFPR = 0, prevTPR = 0;
-    double auc = 0;
-
-    cout << "\nROC Curve (FPR, TPR)\n";
-    cout << "-------------------\n";
-
-    for (auto& p : preds) {
-        if (p.actual == 1) TP++;
-        else FP++;
-
-        double TPR = TP / P;
-        double FPR = FP / N;
-
-        cout << "(" << FPR << ", " << TPR << ")\n";
-
-        auc += (FPR - prevFPR) * (TPR + prevTPR) / 2.0;
-        prevFPR = FPR;
-        prevTPR = TPR;
-    }
-
-    cout << "\nAUC = " << auc << endl;
-}
-
 /* ---------------- Main ---------------- */
 
 int main() {
@@ -174,7 +139,6 @@ int main() {
     }
 
     computeMetrics(predictions);
-    computeROC_AUC(predictions);
 
     return 0;
 }
