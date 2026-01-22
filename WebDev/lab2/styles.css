@@ -1,0 +1,151 @@
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f4f7fb;
+    padding-top: 70px;
+    color: #333;
+}
+
+h1, h2, h3 {
+    font-family: 'Poppins', sans-serif;
+    color: #222;
+}
+
+section {
+    scroll-margin-top: 80px;
+}
+
+.nav-link {
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.nav-link:hover {
+    color: #0d6efd;
+    transform: translateY(-2px);
+}
+
+.header-section {
+    margin-top: 40px;
+    margin-bottom: 60px;
+}
+
+.main-name {
+    font-size: 2.5rem;
+    font-weight: 600;
+}
+
+.subtitle {
+    font-size: 1.1rem;
+    color: #555;
+}
+
+
+.profile-img {
+    width: 100%;
+    max-width: 420px;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 50%;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+    transition: transform 0.5s ease;
+}
+
+.profile-img:hover {
+    transform: scale(1.05);
+}
+
+.content-section {
+    margin-bottom: 60px;
+}
+
+.skill {
+    margin-bottom: 15px;
+}
+
+.progress {
+    height: 10px;
+}
+
+.progress-bar {
+    background-color: #0d6efd;
+}
+
+.contact-email {
+    font-weight: 500;
+    font-size: 1.1rem;
+}
+
+.fade-in {
+    animation: fadeIn 1.2s ease-in;
+}
+
+.form-control {
+    border-radius: 8px;
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.15rem rgba(13, 110, 253, 0.25);
+}
+
+.btn-primary {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(13, 110, 253, 0.3);
+}
+
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .main-name {
+        font-size: 2rem;
+        text-align: center;
+    }
+
+    .subtitle {
+        text-align: center;
+    }
+
+    .header-section {
+        text-align: center;
+    }
+}
+
+@media (min-width: 992px) {
+    .profile-img {
+        max-width: 90vh;
+        border-radius: 20px;
+    }
+}
+
+@media (min-width: 992px) {
+    .header-section {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+    }
+}
