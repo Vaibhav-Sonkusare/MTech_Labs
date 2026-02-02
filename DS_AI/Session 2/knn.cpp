@@ -7,7 +7,6 @@
 
 using namespace std;
 
-/* ---------------- Data Structures ---------------- */
 
 struct DataPoint {
     vector<double> features;
@@ -19,7 +18,6 @@ struct Prediction {
     double prob;   // probability of class 1
 };
 
-/* ---------------- Utility Functions ---------------- */
 
 vector<DataPoint> loadCSV(const string& filename) {
     vector<DataPoint> data;
@@ -54,7 +52,6 @@ double euclideanDistance(const vector<double>& a, const vector<double>& b) {
     return sqrt(sum);
 }
 
-/* ---------------- KNN Classifier ---------------- */
 
 class KNNClassifier {
 private:
@@ -91,7 +88,6 @@ public:
     }
 };
 
-/* ---------------- Metrics ---------------- */
 
 void computeMetrics(const vector<Prediction>& preds) {
     int TP = 0, TN = 0, FP = 0, FN = 0;
