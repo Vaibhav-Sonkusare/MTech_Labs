@@ -1,0 +1,488 @@
+12-Feb-2026 15:48:46.302 INFO [main] org.apache.catalina.core.ApplicationContext.log ContextListener: contextInitialized()
+12-Feb-2026 15:48:46.302 INFO [main] org.apache.catalina.core.ApplicationContext.log SessionListener: contextInitialized()
+12-Feb-2026 15:48:46.303 INFO [main] org.apache.catalina.core.ApplicationContext.log ContextListener: attributeAdded('StockTicker', 'async.Stockticker@34625ccd')
+12-Feb-2026 16:39:14.923 SEVERE [http-nio-8080-exec-3] org.apache.catalina.core.StandardWrapperValve.invoke Servlet.service() for servlet [jsp] in context with path [/lab4] threw exception [org.apache.jasper.JasperException: Unable to compile class for JSP: 
+
+An error occurred at line: [2] in the jsp file: [/question.jsp]
+remaining cannot be resolved to a variable
+1: <script>
+2: let time = <%=remaining%>;
+3: 
+4: setInterval(function(){
+5:     time--;
+
+
+Stacktrace:] with root cause
+	org.apache.jasper.JasperException: Unable to compile class for JSP: 
+
+An error occurred at line: [2] in the jsp file: [/question.jsp]
+remaining cannot be resolved to a variable
+1: <script>
+2: let time = <%=remaining%>;
+3: 
+4: setInterval(function(){
+5:     time--;
+
+
+Stacktrace:
+		at org.apache.jasper.compiler.DefaultErrorHandler.javacError(DefaultErrorHandler.java:70)
+		at org.apache.jasper.compiler.ErrorDispatcher.javacError(ErrorDispatcher.java:189)
+		at org.apache.jasper.compiler.JDTCompiler.generateClass(JDTCompiler.java:528)
+		at org.apache.jasper.compiler.Compiler.compile(Compiler.java:367)
+		at org.apache.jasper.compiler.Compiler.compile(Compiler.java:339)
+		at org.apache.jasper.compiler.Compiler.compile(Compiler.java:325)
+		at org.apache.jasper.JspCompilationContext.compile(JspCompilationContext.java:585)
+		at org.apache.jasper.servlet.JspServletWrapper.service(JspServletWrapper.java:368)
+		at org.apache.jasper.servlet.JspServlet.serviceJspFile(JspServlet.java:330)
+		at org.apache.jasper.servlet.JspServlet.service(JspServlet.java:281)
+		at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:710)
+		at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:128)
+		at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:53)
+		at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:107)
+		at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:165)
+		at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:77)
+		at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:492)
+		at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:113)
+		at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:83)
+		at org.apache.catalina.valves.AbstractAccessLogValve.invoke(AbstractAccessLogValve.java:654)
+		at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:72)
+		at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:341)
+		at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:397)
+		at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+		at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903)
+		at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1779)
+		at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+		at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:946)
+		at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:480)
+		at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:57)
+		at java.base/java.lang.Thread.run(Thread.java:840)
+12-Feb-2026 16:40:18.577 SEVERE [http-nio-8080-exec-5] org.apache.catalina.core.StandardWrapperValve.invoke Servlet.service() for servlet [jsp] in context with path [/lab4] threw exception [org.apache.jasper.JasperException: Unable to compile class for JSP: 
+
+An error occurred at line: [21] in the jsp file: [/question.jsp]
+script cannot be resolved to a type
+18: long remaining = duration - elapsed;
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+
+
+An error occurred at line: [21] in the jsp file: [/question.jsp]
+Syntax error, insert "super ( ) ;" to complete BlockStatements
+18: long remaining = duration - elapsed;
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+
+
+An error occurred at line: [21] in the jsp file: [/question.jsp]
+The Java feature 'Flexible Constructor Bodies' is only available with source level 25 and above
+18: long remaining = duration - elapsed;
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+
+
+An error occurred at line: [22] in the jsp file: [/question.jsp]
+let cannot be resolved to a type
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+25:     time--;
+
+
+An error occurred at line: [22] in the jsp file: [/question.jsp]
+Syntax error on token "<", invalid Expression
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+25:     time--;
+
+
+An error occurred at line: [22] in the jsp file: [/question.jsp]
+Syntax error, insert ":: IdentifierOrNew" to complete ReferenceExpression
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+25:     time--;
+
+
+An error occurred at line: [22] in the jsp file: [/question.jsp]
+Syntax error, insert ";" to complete LocalVariableDeclarationStatement
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+25:     time--;
+
+
+An error occurred at line: [234] in the generated java file: [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/work/Catalina/localhost/lab4/org/apache/jsp/question_jsp.java]
+Syntax error, insert "else Statement" to complete IfStatement
+
+An error occurred at line: [234] in the generated java file: [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/work/Catalina/localhost/lab4/org/apache/jsp/question_jsp.java]
+Syntax error, insert "}" to complete Block
+
+An error occurred at line: [251] in the generated java file: [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/work/Catalina/localhost/lab4/org/apache/jsp/question_jsp.java]
+Syntax error on token "}", delete this token
+
+An error occurred at line: [252] in the generated java file: [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/work/Catalina/localhost/lab4/org/apache/jsp/question_jsp.java]
+Syntax error, insert "}" to complete ClassBody
+
+Stacktrace:] with root cause
+	org.apache.jasper.JasperException: Unable to compile class for JSP: 
+
+An error occurred at line: [21] in the jsp file: [/question.jsp]
+script cannot be resolved to a type
+18: long remaining = duration - elapsed;
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+
+
+An error occurred at line: [21] in the jsp file: [/question.jsp]
+Syntax error, insert "super ( ) ;" to complete BlockStatements
+18: long remaining = duration - elapsed;
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+
+
+An error occurred at line: [21] in the jsp file: [/question.jsp]
+The Java feature 'Flexible Constructor Bodies' is only available with source level 25 and above
+18: long remaining = duration - elapsed;
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+
+
+An error occurred at line: [22] in the jsp file: [/question.jsp]
+let cannot be resolved to a type
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+25:     time--;
+
+
+An error occurred at line: [22] in the jsp file: [/question.jsp]
+Syntax error on token "<", invalid Expression
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+25:     time--;
+
+
+An error occurred at line: [22] in the jsp file: [/question.jsp]
+Syntax error, insert ":: IdentifierOrNew" to complete ReferenceExpression
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+25:     time--;
+
+
+An error occurred at line: [22] in the jsp file: [/question.jsp]
+Syntax error, insert ";" to complete LocalVariableDeclarationStatement
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+25:     time--;
+
+
+An error occurred at line: [234] in the generated java file: [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/work/Catalina/localhost/lab4/org/apache/jsp/question_jsp.java]
+Syntax error, insert "else Statement" to complete IfStatement
+
+An error occurred at line: [234] in the generated java file: [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/work/Catalina/localhost/lab4/org/apache/jsp/question_jsp.java]
+Syntax error, insert "}" to complete Block
+
+An error occurred at line: [251] in the generated java file: [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/work/Catalina/localhost/lab4/org/apache/jsp/question_jsp.java]
+Syntax error on token "}", delete this token
+
+An error occurred at line: [252] in the generated java file: [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/work/Catalina/localhost/lab4/org/apache/jsp/question_jsp.java]
+Syntax error, insert "}" to complete ClassBody
+
+Stacktrace:
+		at org.apache.jasper.compiler.DefaultErrorHandler.javacError(DefaultErrorHandler.java:70)
+		at org.apache.jasper.compiler.ErrorDispatcher.javacError(ErrorDispatcher.java:189)
+		at org.apache.jasper.compiler.JDTCompiler.generateClass(JDTCompiler.java:528)
+		at org.apache.jasper.compiler.Compiler.compile(Compiler.java:367)
+		at org.apache.jasper.compiler.Compiler.compile(Compiler.java:339)
+		at org.apache.jasper.compiler.Compiler.compile(Compiler.java:325)
+		at org.apache.jasper.JspCompilationContext.compile(JspCompilationContext.java:585)
+		at org.apache.jasper.servlet.JspServletWrapper.service(JspServletWrapper.java:368)
+		at org.apache.jasper.servlet.JspServlet.serviceJspFile(JspServlet.java:330)
+		at org.apache.jasper.servlet.JspServlet.service(JspServlet.java:281)
+		at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:710)
+		at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:128)
+		at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:53)
+		at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:107)
+		at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:165)
+		at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:77)
+		at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:492)
+		at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:113)
+		at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:83)
+		at org.apache.catalina.valves.AbstractAccessLogValve.invoke(AbstractAccessLogValve.java:654)
+		at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:72)
+		at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:341)
+		at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:397)
+		at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+		at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903)
+		at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1779)
+		at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+		at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:946)
+		at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:480)
+		at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:57)
+		at java.base/java.lang.Thread.run(Thread.java:840)
+12-Feb-2026 16:40:23.545 SEVERE [http-nio-8080-exec-2] org.apache.catalina.core.StandardWrapperValve.invoke Servlet.service() for servlet [jsp] in context with path [/lab4] threw exception [org.apache.jasper.JasperException: Unable to compile class for JSP: 
+
+An error occurred at line: [21] in the jsp file: [/question.jsp]
+script cannot be resolved to a type
+18: long remaining = duration - elapsed;
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+
+
+An error occurred at line: [21] in the jsp file: [/question.jsp]
+Syntax error, insert "super ( ) ;" to complete BlockStatements
+18: long remaining = duration - elapsed;
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+
+
+An error occurred at line: [21] in the jsp file: [/question.jsp]
+The Java feature 'Flexible Constructor Bodies' is only available with source level 25 and above
+18: long remaining = duration - elapsed;
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+
+
+An error occurred at line: [22] in the jsp file: [/question.jsp]
+let cannot be resolved to a type
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+25:     time--;
+
+
+An error occurred at line: [22] in the jsp file: [/question.jsp]
+Syntax error on token "<", invalid Expression
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+25:     time--;
+
+
+An error occurred at line: [22] in the jsp file: [/question.jsp]
+Syntax error, insert ":: IdentifierOrNew" to complete ReferenceExpression
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+25:     time--;
+
+
+An error occurred at line: [22] in the jsp file: [/question.jsp]
+Syntax error, insert ";" to complete LocalVariableDeclarationStatement
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+25:     time--;
+
+
+An error occurred at line: [234] in the generated java file: [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/work/Catalina/localhost/lab4/org/apache/jsp/question_jsp.java]
+Syntax error, insert "else Statement" to complete IfStatement
+
+An error occurred at line: [234] in the generated java file: [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/work/Catalina/localhost/lab4/org/apache/jsp/question_jsp.java]
+Syntax error, insert "}" to complete Block
+
+An error occurred at line: [251] in the generated java file: [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/work/Catalina/localhost/lab4/org/apache/jsp/question_jsp.java]
+Syntax error on token "}", delete this token
+
+An error occurred at line: [252] in the generated java file: [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/work/Catalina/localhost/lab4/org/apache/jsp/question_jsp.java]
+Syntax error, insert "}" to complete ClassBody
+
+Stacktrace:] with root cause
+	org.apache.jasper.JasperException: Unable to compile class for JSP: 
+
+An error occurred at line: [21] in the jsp file: [/question.jsp]
+script cannot be resolved to a type
+18: long remaining = duration - elapsed;
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+
+
+An error occurred at line: [21] in the jsp file: [/question.jsp]
+Syntax error, insert "super ( ) ;" to complete BlockStatements
+18: long remaining = duration - elapsed;
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+
+
+An error occurred at line: [21] in the jsp file: [/question.jsp]
+The Java feature 'Flexible Constructor Bodies' is only available with source level 25 and above
+18: long remaining = duration - elapsed;
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+
+
+An error occurred at line: [22] in the jsp file: [/question.jsp]
+let cannot be resolved to a type
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+25:     time--;
+
+
+An error occurred at line: [22] in the jsp file: [/question.jsp]
+Syntax error on token "<", invalid Expression
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+25:     time--;
+
+
+An error occurred at line: [22] in the jsp file: [/question.jsp]
+Syntax error, insert ":: IdentifierOrNew" to complete ReferenceExpression
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+25:     time--;
+
+
+An error occurred at line: [22] in the jsp file: [/question.jsp]
+Syntax error, insert ";" to complete LocalVariableDeclarationStatement
+19: 
+20: 
+21: if(remaining <= 0){<script>
+22: let time = <%=remaining%>;
+23: 
+24: setInterval(function(){
+25:     time--;
+
+
+An error occurred at line: [234] in the generated java file: [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/work/Catalina/localhost/lab4/org/apache/jsp/question_jsp.java]
+Syntax error, insert "else Statement" to complete IfStatement
+
+An error occurred at line: [234] in the generated java file: [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/work/Catalina/localhost/lab4/org/apache/jsp/question_jsp.java]
+Syntax error, insert "}" to complete Block
+
+An error occurred at line: [251] in the generated java file: [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/work/Catalina/localhost/lab4/org/apache/jsp/question_jsp.java]
+Syntax error on token "}", delete this token
+
+An error occurred at line: [252] in the generated java file: [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/work/Catalina/localhost/lab4/org/apache/jsp/question_jsp.java]
+Syntax error, insert "}" to complete ClassBody
+
+Stacktrace:
+		at org.apache.jasper.compiler.DefaultErrorHandler.javacError(DefaultErrorHandler.java:70)
+		at org.apache.jasper.compiler.ErrorDispatcher.javacError(ErrorDispatcher.java:189)
+		at org.apache.jasper.compiler.JDTCompiler.generateClass(JDTCompiler.java:528)
+		at org.apache.jasper.compiler.Compiler.compile(Compiler.java:367)
+		at org.apache.jasper.compiler.Compiler.compile(Compiler.java:339)
+		at org.apache.jasper.compiler.Compiler.compile(Compiler.java:325)
+		at org.apache.jasper.JspCompilationContext.compile(JspCompilationContext.java:585)
+		at org.apache.jasper.servlet.JspServletWrapper.service(JspServletWrapper.java:368)
+		at org.apache.jasper.servlet.JspServlet.serviceJspFile(JspServlet.java:330)
+		at org.apache.jasper.servlet.JspServlet.service(JspServlet.java:281)
+		at jakarta.servlet.http.HttpServlet.service(HttpServlet.java:710)
+		at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:128)
+		at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:53)
+		at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:107)
+		at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:165)
+		at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:77)
+		at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:492)
+		at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:113)
+		at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:83)
+		at org.apache.catalina.valves.AbstractAccessLogValve.invoke(AbstractAccessLogValve.java:654)
+		at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:72)
+		at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:341)
+		at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:397)
+		at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63)
+		at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903)
+		at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1779)
+		at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52)
+		at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:946)
+		at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:480)
+		at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:57)
+		at java.base/java.lang.Thread.run(Thread.java:840)
