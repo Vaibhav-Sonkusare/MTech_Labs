@@ -1,0 +1,47 @@
+19-Feb-2026 14:06:20.497 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version name:   Apache Tomcat/11.0.18
+19-Feb-2026 14:06:20.500 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server built:          Jan 23 2026 10:22:57 UTC
+19-Feb-2026 14:06:20.500 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server version number: 11.0.18.0
+19-Feb-2026 14:06:20.500 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Name:               Linux
+19-Feb-2026 14:06:20.500 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log OS Version:            6.8.0-94-generic
+19-Feb-2026 14:06:20.500 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Architecture:          amd64
+19-Feb-2026 14:06:20.500 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Java Home:             /usr/lib/jvm/java-17-openjdk-amd64
+19-Feb-2026 14:06:20.500 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Version:           17.0.18+8-Ubuntu-122.04.1
+19-Feb-2026 14:06:20.500 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM Vendor:            Ubuntu
+19-Feb-2026 14:06:20.500 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_BASE:         /home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18
+19-Feb-2026 14:06:20.500 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_HOME:         /home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18
+19-Feb-2026 14:06:20.506 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.config.file=/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/conf/logging.properties
+19-Feb-2026 14:06:20.506 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager
+19-Feb-2026 14:06:20.506 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djdk.tls.ephemeralDHKeySize=2048
+19-Feb-2026 14:06:20.506 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dorg.apache.catalina.security.SecurityListener.UMASK=0027
+19-Feb-2026 14:06:20.506 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: --add-opens=java.base/java.lang=ALL-UNNAMED
+19-Feb-2026 14:06:20.506 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: --add-opens=java.base/java.lang.reflect=ALL-UNNAMED
+19-Feb-2026 14:06:20.506 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: --add-opens=java.base/java.io=ALL-UNNAMED
+19-Feb-2026 14:06:20.506 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: --add-opens=java.base/java.util=ALL-UNNAMED
+19-Feb-2026 14:06:20.506 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: --add-opens=java.base/java.util.concurrent=ALL-UNNAMED
+19-Feb-2026 14:06:20.506 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: --add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED
+19-Feb-2026 14:06:20.507 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: --enable-native-access=ALL-UNNAMED
+19-Feb-2026 14:06:20.507 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.base=/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18
+19-Feb-2026 14:06:20.507 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Dcatalina.home=/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18
+19-Feb-2026 14:06:20.507 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Command line argument: -Djava.io.tmpdir=/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/temp
+19-Feb-2026 14:06:20.508 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent The Apache Tomcat Native library which allows using OpenSSL was not found on the java.library.path: [/usr/java/packages/lib:/usr/lib/x86_64-linux-gnu/jni:/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/usr/lib/jni:/lib:/usr/lib]
+19-Feb-2026 14:06:20.614 INFO [main] org.apache.coyote.AbstractProtocol.init Initializing ProtocolHandler ["http-nio-8080"]
+19-Feb-2026 14:06:20.630 INFO [main] org.apache.catalina.startup.Catalina.load Server initialization in [216] milliseconds
+19-Feb-2026 14:06:20.650 INFO [main] org.apache.catalina.core.StandardService.startInternal Starting service [Catalina]
+19-Feb-2026 14:06:20.650 INFO [main] org.apache.catalina.core.StandardEngine.startInternal Starting Servlet engine: [Apache Tomcat/11.0.18]
+19-Feb-2026 14:06:20.654 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/webapps/ROOT]
+19-Feb-2026 14:06:20.782 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/webapps/ROOT] has finished in [128] ms
+19-Feb-2026 14:06:20.782 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/webapps/docs]
+19-Feb-2026 14:06:20.793 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/webapps/docs] has finished in [11] ms
+19-Feb-2026 14:06:20.793 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/webapps/examples]
+19-Feb-2026 14:06:20.896 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/webapps/examples] has finished in [103] ms
+19-Feb-2026 14:06:20.896 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/webapps/host-manager]
+19-Feb-2026 14:06:20.910 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/webapps/host-manager] has finished in [14] ms
+19-Feb-2026 14:06:20.910 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/webapps/manager]
+19-Feb-2026 14:06:20.920 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/webapps/manager] has finished in [10] ms
+19-Feb-2026 14:06:20.920 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/webapps/lab4]
+19-Feb-2026 14:06:20.929 INFO [main] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/webapps/lab4] has finished in [9] ms
+19-Feb-2026 14:06:20.931 INFO [main] org.apache.coyote.AbstractProtocol.start Starting ProtocolHandler ["http-nio-8080"]
+19-Feb-2026 14:06:20.937 INFO [main] org.apache.catalina.startup.Catalina.start Server startup in [306] milliseconds
+19-Feb-2026 17:27:42.059 INFO [Catalina-utility-2] org.apache.catalina.startup.HostConfig.undeploy Undeploying context [/lab4]
+19-Feb-2026 17:31:22.079 INFO [Catalina-utility-1] org.apache.catalina.startup.HostConfig.deployDirectory Deploying web application directory [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/webapps/lab4]
+19-Feb-2026 17:31:22.085 INFO [Catalina-utility-1] org.apache.catalina.startup.HostConfig.deployDirectory Deployment of web application directory [/home/mtech/Documents/206125030/WebDev/apache-tomcat-11.0.18/webapps/lab4] has finished in [6] ms
