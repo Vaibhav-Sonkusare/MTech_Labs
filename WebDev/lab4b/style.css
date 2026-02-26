@@ -1,0 +1,177 @@
+/* Very minimal style */
+body {
+    font-family: sans-serif;
+    margin: 0;
+    padding: 0;
+    color: #000;
+    background-color: #fff;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    border-bottom: 2px solid #ccc;
+    padding: 10px 0;
+    margin-bottom: 20px;
+}
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #000;
+    text-decoration: none;
+}
+
+.nav-links a {
+    color: #000;
+    margin-left: 20px;
+    text-decoration: none;
+}
+
+.nav-links a:hover {
+    text-decoration: underline;
+}
+
+/* Remove decorative cards styles */
+.card,
+.stats-card,
+.auth-container {
+    padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    /* simple border for structure */
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+}
+
+/* Minimal Buttons */
+.btn,
+.btn-secondary {
+    display: inline-block;
+    background: #eee;
+    color: #000;
+    padding: 5px 10px;
+    text-decoration: none;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    font-size: 0.9rem;
+    border-radius: 0;
+    margin-right: 5px;
+}
+
+.btn:hover,
+.btn-secondary:hover {
+    background: #ddd;
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+input,
+select,
+textarea {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #aaa;
+    border-radius: 0;
+    box-sizing: border-box;
+}
+
+/* Dashboard Layout */
+.dashboard-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.stats-card {
+    flex: 1 1 300px;
+    text-align: left;
+}
+
+/* Step Indicator */
+.step-indicator {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.step {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #ccc;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 5px;
+    color: #ccc;
+}
+
+.step.active {
+    border-color: #000;
+    color: #000;
+    font-weight: bold;
+}
+
+.step.completed {
+    background: #eee;
+    color: #000;
+}
+
+/* Messages */
+.error-msg,
+.success-msg {
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+}
+
+.error-msg {
+    background: #ffe6e6;
+    color: #cc0000;
+}
+
+.success-msg {
+    background: #e6ffe6;
+    color: #006600;
+}
+
+/* Table */
+.summary-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.summary-table th,
+.summary-table td {
+    padding: 8px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.summary-table th {
+    background: #eee;
+}
