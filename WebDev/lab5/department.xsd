@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+    <!-- Root element -->
+    <xs:element name="department">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="dept_name"    type="xs:string"/>
+                <xs:element name="hod_name"     type="xs:string"/>
+                <xs:element name="faculty_list" type="FacultyListType"/>
+                <xs:element name="student_list" type="StudentListType"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Faculty List -->
+    <xs:complexType name="FacultyListType">
+        <xs:sequence>
+            <xs:element name="faculty" type="FacultyType" minOccurs="1" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Faculty -->
+    <xs:complexType name="FacultyType">
+        <xs:sequence>
+            <xs:element name="name"        type="xs:string"/>
+            <xs:element name="designation" type="xs:string"/>
+            <xs:element name="email"       type="EmailType"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- Student List -->
+    <xs:complexType name="StudentListType">
+        <xs:sequence>
+            <xs:element name="student" type="StudentType" minOccurs="1" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Student -->
+    <xs:complexType name="StudentType">
+        <xs:sequence>
+            <xs:element name="name"     type="xs:string"/>
+            <xs:element name="semester" type="xs:decimal"/>
+            <xs:element name="cgpa"     type="CGPAType"/>
+        </xs:sequence>
+        <xs:attribute name="roll" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- CGPA: decimal 0.00 to 10.00 -->
+    <xs:simpleType name="CGPAType">
+        <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="0.00"/>
+            <xs:maxInclusive value="10.00"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Basic email pattern -->
+    <xs:simpleType name="EmailType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[^@\s]+@[^@\s]+\.[^@\s]+"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>

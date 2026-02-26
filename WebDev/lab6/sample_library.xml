@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="library.xsl"?>
+<library>
+    <book id="LIB001">
+        <title>Programming PHP</title>
+        <author>Kevin Tatroe</author>
+        <year>2020</year>
+        <isbn>9781492092004</isbn>
+        <status>Available</status>
+    </book>
+    <book id="LIB002">
+        <title>Learning XML</title>
+        <author>Erik T. Ray</author>
+        <year>2003</year>
+        <isbn>9780596004200</isbn>
+        <status>Issued</status>
+    </book>
+</library>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE department SYSTEM "department.dtd">
+<department>
+	<dept_name>d</dept_name>
+	<hod_name>gh</hod_name>
+	<faculty_list>
+		<faculty id="fds">
+			<name>fsd</name>
+			<designation>dsca</designation>
+			<email>fds@f.c</email>
+		</faculty>
+	</faculty_list>
+	<student_list>
+		<student roll="sfdc">
+			<name>ferwa</name>
+			<semester>6</semester>
+			<cgpa>5</cgpa>
+		</student>
+	</student_list>
+</department>

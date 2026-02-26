@@ -1,0 +1,17 @@
+<!ELEMENT department (dept_name, hod_name, faculty_list, student_list)>
+<!ELEMENT dept_name (#PCDATA)>
+<!ELEMENT hod_name (#PCDATA)>
+
+<!ELEMENT faculty_list (faculty+)>
+<!ELEMENT faculty (name, designation, email)>
+<!ATTLIST faculty id CDATA #REQUIRED>
+<!ELEMENT designation (#PCDATA)>
+<!ELEMENT email (#PCDATA)>
+
+<!ELEMENT student_list (student+)>
+<!ELEMENT student (name, semester, cgpa)>
+<!ATTLIST student roll CDATA #REQUIRED>
+<!ELEMENT semester (#PCDATA)>
+<!ELEMENT cgpa (#PCDATA)>
+
+<!ELEMENT name (#PCDATA)>
