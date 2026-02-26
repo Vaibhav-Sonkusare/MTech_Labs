@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="library.xsl"?>
+<library>
+  <book id="80">
+    <title>fds</title>
+    <author>fds</author>
+    <year>9</year>
+    <isbn>6789098</isbn>
+    <status>Available</status>
+  </book>
+  <book id="80">
+    <title>ds</title>
+    <author>kdsfol</author>
+    <year>9</year>
+    <isbn>6789098</isbn>
+    <status>Available</status>
+  </book>
+</library>
