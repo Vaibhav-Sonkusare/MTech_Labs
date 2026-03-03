@@ -9,7 +9,7 @@
 #include "../include/net.h"
 #include "../include/protocol.h"
 #define MAX_FILENAME_LEN 255
-#define MAX_RETRIES 10
+#define MAX_RETRIES 500
 
 typedef enum {
   R_IDLE,
@@ -241,29 +241,31 @@ int main(int argc, char **argv) {
 
         state = R_RECEIVING_BLAST;
       } else if (type == PKT_IS_BLAST_OVER) {
-        /* no data packets arrived for this blast, still respond */
+        /* no data packets arrived for this blast - ALL packets are missing */
         pkt_is_blast_over_t *iso = (pkt_is_blast_over_t *)recv_buf;
         current_blast_id = ntohl(iso->blast_id);
         expected_packets_this_blast = ntohl(iso->n_packets);
-        // if (expected_packets_this_blast == 0) expected_packets_this_blast =
-        // 1;
+        if (expected_packets_this_blast == 0)
+          expected_packets_this_blast = 1;
 
         memset(packets_received, 0, sizeof(packets_received));
-        printf("[Receiver] Got IS_BLAST_OVER(blast %u) without data; replying "
-               "empty or missing.\n",
-               current_blast_id);
+        printf("[Receiver] Got IS_BLAST_OVER(blast %u) without data packets; "
+               "reporting ALL %u packets missing.\n",
+               current_blast_id, expected_packets_this_blast);
 
-        /* send REC_MISS (likely empty) */
+        /* All packets are missing - request retransmission of all */
         pkt_rec_miss_hdr_t miss;
         miss.type = PKT_REC_MISS_HDR;
-        miss.n_packets_missing = 0;
+        miss.n_packets_missing = (uint8_t)expected_packets_this_blast;
         memset(miss.is_pkt_missing, 0, sizeof(miss.is_pkt_missing));
+        for (uint32_t i = 0; i < expected_packets_this_blast; ++i) {
+          miss.is_pkt_missing[i] = 1;
+        }
         udp_send(sockfd, &miss, sizeof(miss), &sender_addr);
-        printf("[Receiver] ****NO BLAST PACKET SENT BUT SENT "
-               "PKT_IS_BLAST_OVER****\n");
-        printf("[Receiver] Sent REC_MISS(empty)\n");
+        printf("[Receiver] Sent REC_MISS(%u missing)\n",
+               expected_packets_this_blast);
 
-        state = R_WAIT_DISCONNECT;
+        state = R_RECEIVING_BLAST; /* Wait for retransmitted packets */
       } else if (type == PKT_FILE_HDR) {
         // pkt_file_hdr_t *hdr = (pkt_file_hdr_t*)recv_buf;
 
@@ -367,6 +369,31 @@ int main(int argc, char **argv) {
       udp_send(sockfd, &miss, sizeof(miss), &sender_addr);
       if (missing == 0) {
         printf("[Receiver] Sent REC_MISS(empty)\n");
+
+        /* Write blast data to disk */
+        printf("[Receiver] Writing blast %u data to disk...\n",
+               current_blast_id);
+        uint32_t recs_to_write =
+            expected_packets_this_blast * DEFAULT_RECORDS_PER_PACKET;
+        if (recs_to_write > total_records_expected)
+          recs_to_write = total_records_expected;
+
+        size_t bytes_to_write = (size_t)recs_to_write * rec_size;
+        uint64_t remaining = total_file_size - bytes_written;
+        size_t safe_write =
+            (bytes_to_write < remaining) ? bytes_to_write : (size_t)remaining;
+
+        if (safe_write > 0) {
+          if (fwrite(blast_blob, 1, safe_write, outf) != safe_write) {
+            perror("fwrite blast");
+          } else {
+            printf("[Receiver] Wrote %zu bytes for blast %u to %s\n",
+                   safe_write, current_blast_id, out_filename);
+            bytes_written += safe_write;
+            memset(blast_blob, '\0', blast_blob_size);
+          }
+        }
+
         state = R_WAIT_DISCONNECT;
       } else {
         printf("[Receiver] Sent REC_MISS(%u missing)\n", missing);
@@ -376,36 +403,7 @@ int main(int argc, char **argv) {
     }
 
     case R_WAIT_DISCONNECT: {
-      /* At this point we have the blast's records in blast_blob — write them
-         out to file. We'll compute how many records to write using
-         expected_packets_this_blast * DEFAULT_RECORDS_PER_PACKET (but clamp to
-         total file size). */
-
-      printf("[Receiver] Writing blast %u data to disk...\n", current_blast_id);
-      /* compute how many records we actually have available to write */
-      uint32_t recs_to_write =
-          expected_packets_this_blast * DEFAULT_RECORDS_PER_PACKET;
-      if (recs_to_write > total_records_expected)
-        recs_to_write = total_records_expected;
-
-      size_t bytes_to_write = (size_t)recs_to_write * rec_size;
-
-      /* compute exact remaining bytes in the file */
-      uint64_t remaining = total_file_size - bytes_written;
-      size_t safe_write =
-          (bytes_to_write < remaining) ? bytes_to_write : (size_t)remaining;
-      if (safe_write > 0) {
-        if (fwrite(blast_blob, 1, safe_write, outf) != safe_write) {
-          perror("fwrite blast");
-        } else {
-          printf("[Receiver] Wrote %zu bytes for blast %u to %s\n", safe_write,
-                 current_blast_id, out_filename);
-          bytes_written += safe_write;
-          memset(blast_blob, '\0', blast_blob_size); /* clear for next blast */
-        }
-      }
-
-      /* Now wait for either next blast packet, new IS_BLAST_OVER (rare) or
+      /* Wait for either next blast packet, new IS_BLAST_OVER (rare) or
        * DISCONNECT */
       ssize_t n = udp_recv(sockfd, recv_buf, sizeof(recv_buf), &sender_addr);
 
@@ -451,17 +449,54 @@ int main(int argc, char **argv) {
         pkt_is_blast_over_t *iso = (pkt_is_blast_over_t *)recv_buf;
         uint32_t iso_blast_id = ntohl(iso->blast_id);
         uint32_t iso_n_packets = ntohl(iso->n_packets);
-        printf("[Receiver] ****Got IS_BLAST_OVER for new blast=%u (no "
-               "packets)****\n",
-               iso_blast_id);
+
+        if (iso_blast_id <= current_blast_id) {
+          /* Duplicate blast over - sender likely didn't get our REC_MISS(0) */
+          printf("[Receiver] Got duplicate IS_BLAST_OVER for blast %u. "
+                 "Resending REC_MISS(0).\n",
+                 iso_blast_id);
+          pkt_rec_miss_hdr_t miss;
+          miss.type = PKT_REC_MISS_HDR;
+          miss.n_packets_missing = 0;
+          memset(miss.is_pkt_missing, 0, sizeof(miss.is_pkt_missing));
+          udp_send(sockfd, &miss, sizeof(miss), &sender_addr);
+          /* Stay in R_WAIT_DISCONNECT */
+          break;
+        }
+
+        /* Got IS_BLAST_OVER for a NEW blast without receiving any data packets.
+           This means we missed ALL packets for the new blast. */
+        printf("[Receiver] Got IS_BLAST_OVER for new blast=%u without data; "
+               "reporting ALL %u packets missing.\n",
+               iso_blast_id, iso_n_packets);
+
+        current_blast_id = iso_blast_id;
         expected_packets_this_blast = iso_n_packets;
+        if (expected_packets_this_blast == 0)
+          expected_packets_this_blast = 1;
+
+        /* Reset packets_received and report all as missing */
+        memset(packets_received, 0, sizeof(packets_received));
+
         pkt_rec_miss_hdr_t miss;
         miss.type = PKT_REC_MISS_HDR;
-        miss.n_packets_missing = 0;
+        miss.n_packets_missing = (uint8_t)expected_packets_this_blast;
         memset(miss.is_pkt_missing, 0, sizeof(miss.is_pkt_missing));
+        for (uint32_t i = 0; i < expected_packets_this_blast; ++i) {
+          miss.is_pkt_missing[i] = 1;
+        }
         udp_send(sockfd, &miss, sizeof(miss), &sender_addr);
-        printf("[Receiver] Sent REC_MISS(empty)\n");
-        state = R_WAIT_DISCONNECT;
+        printf("[Receiver] Sent REC_MISS(%u missing)\n",
+               expected_packets_this_blast);
+
+        state = R_RECEIVING_BLAST; /* Wait for retransmitted packets */
+        /* Note: If this WAS an empty blast that needed writing, we are now
+           skipping the write. But "empty blast" (0 packets) means 0 bytes to
+           write? iso_n_packets might be > 0. If > 0 and we start here, we
+           missed everything. We should really go to R_RECEIVING_BLAST or
+           R_SEND_REC_MISS with all missing. But let's stick to fixing the
+           regression first.
+        */
       } else if (type == PKT_DISCONNECT) {
         printf("[Receiver] Received DISCONNECT — closing.\n");
         state = R_DONE;
