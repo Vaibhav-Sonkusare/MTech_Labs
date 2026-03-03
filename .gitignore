@@ -11,3 +11,27 @@ __pycache__/
 # IDE settings
 .vscode/
 .idea/
+
+# Node.js dependencies
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Optional: dependency directories for monorepos
+**/node_modules/
