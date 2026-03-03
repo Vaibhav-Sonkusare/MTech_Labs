@@ -12,7 +12,7 @@
 #include "../include/protocol.h"
 #include "../include/record.h"
 #define MAX_FILENAME_LEN 255
-#define MAX_RETRIES 5
+#define MAX_RETRIES 500
 #define RETRY_TIMEOUT_SEC 1
 
 typedef enum {

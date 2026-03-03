@@ -1,0 +1,363 @@
+[NET] Packet loss rate set to 0.050
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=4
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=4
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[Sender] File 'test_files/1mb.bin' size=1048576 bytes -> 16384 records (rec_size=64)
+[Sender] Sending FILE_HDR...
+[Sender] Waiting for FILE_HDR_ACK...
+[Sender] Received ACK! Status=0
+[Sender] Sending blast 1/64 (records 1-256, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=1, packets=16)
+[Sender] Got REC_MISS for blast=1 missing=3
+[Sender] Retransmitting blast 1 packet 3
+[Sender] Retransmitting blast 1 packet 7
+[Sender] Retransmitting blast 1 packet 10
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (2/5)
+[Sender] Got REC_MISS for blast=1 missing=1
+[Sender] Retransmitting blast 1 packet 3
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=1 missing=0
+[Sender] Sending blast 2/64 (records 257-512, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=2, packets=16)
+[Sender] Got REC_MISS for blast=2 missing=1
+[Sender] Retransmitting blast 2 packet 9
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=2 missing=0
+[Sender] Sending blast 3/64 (records 513-768, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=3, packets=16)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=3 missing=3
+[Sender] Retransmitting blast 3 packet 9
+[Sender] Retransmitting blast 3 packet 13
+[Sender] Retransmitting blast 3 packet 15
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=3 missing=1
+[Sender] Retransmitting blast 3 packet 15
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=3 missing=0
+[Sender] Sending blast 4/64 (records 769-1024, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=4, packets=16)
+[Sender] Got REC_MISS for blast=4 missing=0
+[Sender] Sending blast 5/64 (records 1025-1280, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=5, packets=16)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=5 missing=1
+[Sender] Retransmitting blast 5 packet 15
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=5 missing=0
+[Sender] Sending blast 6/64 (records 1281-1536, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=6, packets=16)
+[Sender] Got REC_MISS for blast=6 missing=2
+[Sender] Retransmitting blast 6 packet 3
+[Sender] Retransmitting blast 6 packet 15
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=6 missing=0
+[Sender] Sending blast 7/64 (records 1537-1792, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=7, packets=16)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=7 missing=0
+[Sender] Sending blast 8/64 (records 1793-2048, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=8, packets=16)
+[Sender] Got REC_MISS for blast=8 missing=0
+[Sender] Sending blast 9/64 (records 2049-2304, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=9, packets=16)
+[Sender] Got REC_MISS for blast=9 missing=0
+[Sender] Sending blast 10/64 (records 2305-2560, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=10, packets=16)
+[Sender] Got REC_MISS for blast=10 missing=0
+[Sender] Sending blast 11/64 (records 2561-2816, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=11, packets=16)
+[Sender] Got REC_MISS for blast=11 missing=2
+[Sender] Retransmitting blast 11 packet 9
+[Sender] Retransmitting blast 11 packet 12
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=11 missing=0
+[Sender] Sending blast 12/64 (records 2817-3072, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=12, packets=16)
+[Sender] Got REC_MISS for blast=12 missing=0
+[Sender] Sending blast 13/64 (records 3073-3328, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=13, packets=16)
+[Sender] Got REC_MISS for blast=13 missing=1
+[Sender] Ret[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=4
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED incoming packet type=5
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=4
+[NET] DROPPED incoming packet type=5
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED incoming packet type=5
+[NET] DROPPED incoming packet type=5
+ransmitting blast 13 packet 4
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=13 missing=0
+[Sender] Sending blast 14/64 (records 3329-3584, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=14, packets=16)
+[Sender] Got REC_MISS for blast=14 missing=1
+[Sender] Retransmitting blast 14 packet 7
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (2/5)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (3/5)
+[Sender] Got REC_MISS for blast=14 missing=1
+[Sender] Retransmitting blast 14 packet 7
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (2/5)
+[Sender] Got REC_MISS for blast=14 missing=1
+[Sender] Retransmitting blast 14 packet 7
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=14 missing=0
+[Sender] Sending blast 15/64 (records 3585-3840, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=15, packets=16)
+[Sender] Got REC_MISS for blast=15 missing=2
+[Sender] Retransmitting blast 15 packet 0
+[Sender] Retransmitting blast 15 packet 13
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=15 missing=0
+[Sender] Sending blast 16/64 (records 3841-4096, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=16, packets=16)
+[Sender] Got REC_MISS for blast=16 missing=1
+[Sender] Retransmitting blast 16 packet 5
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=16 missing=0
+[Sender] Sending blast 17/64 (records 4097-4352, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=17, packets=16)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=17 missing=1
+[Sender] Retransmitting blast 17 packet 1
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=17 missing=0
+[Sender] Sending blast 18/64 (records 4353-4608, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=18, packets=16)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=18 missing=1
+[Sender] Retransmitting blast 18 packet 9
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=18 missing=1
+[Sender] Retransmitting blast 18 packet 9
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=18 missing=0
+[Sender] Sending blast 19/64 (records 4609-4864, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=19, packets=16)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=19 missing=2
+[Sender] Retransmitting blast 19 packet 0
+[Sender] Retransmitting blast 19 packet 3
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=19 missing=0
+[Sender] Sending blast 20/64 (records 4865-5120, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=20, packets=16)
+[Sender] Got REC_MISS for blast=20 missing=1
+[Sender] Retransmitting blast 20 packet 4
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=20 missing=0
+[Sender] Sending blast 21/64 (records 5121-5376, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=21, packets=16)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (2/5)
+[Sender] Got REC_MISS for blast=21 missing=3
+[Sender] Retransmitting blast 21 packet 1
+[Sender] Retransmitting blast 21 packet 11
+[Sender] Retransmitting blast 21 packet 12
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=21 missing=0
+[Sender] Sending blast 22/64 (records[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=4
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=4
+[NET] DROPPED incoming packet type=5
+ 5377-5632, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=22, packets=16)
+[Sender] Got REC_MISS for blast=22 missing=4
+[Sender] Retransmitting blast 22 packet 4
+[Sender] Retransmitting blast 22 packet 6
+[Sender] Retransmitting blast 22 packet 8
+[Sender] Retransmitting blast 22 packet 15
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=22 missing=0
+[Sender] Sending blast 23/64 (records 5633-5888, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=23, packets=16)
+[Sender] Got REC_MISS for blast=23 missing=1
+[Sender] Retransmitting blast 23 packet 9
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (2/5)
+[Sender] Got REC_MISS for blast=23 missing=0
+[Sender] Sending blast 24/64 (records 5889-6144, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=24, packets=16)
+[Sender] Got REC_MISS for blast=24 missing=1
+[Sender] Retransmitting blast 24 packet 3
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=24 missing=0
+[Sender] Sending blast 25/64 (records 6145-6400, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=25, packets=16)
+[Sender] Got REC_MISS for blast=25 missing=1
+[Sender] Retransmitting blast 25 packet 9
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=25 missing=0
+[Sender] Sending blast 26/64 (records 6401-6656, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=26, packets=16)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=26 missing=2
+[Sender] Retransmitting blast 26 packet 6
+[Sender] Retransmitting blast 26 packet 8
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=26 missing=0
+[Sender] Sending blast 27/64 (records 6657-6912, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=27, packets=16)
+[Sender] Got REC_MISS for blast=27 missing=3
+[Sender] Retransmitting blast 27 packet 2
+[Sender] Retransmitting blast 27 packet 3
+[Sender] Retransmitting blast 27 packet 15
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=27 missing=1
+[Sender] Retransmitting blast 27 packet 2
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=27 missing=0
+[Sender] Sending blast 28/64 (records 6913-7168, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=28, packets=16)
+[Sender] Got REC_MISS for blast=28 missing=4
+[Sender] Retransmitting blast 28 packet 4
+[Sender] Retransmitting blast 28 packet 6
+[Sender] Retransmitting blast 28 packet 8
+[Sender] Retransmitting blast 28 packet 9
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (2/5)
+[Sender] Got REC_MISS for blast=28 missing=0
+[Sender] Sending blast 29/64 (records 7169-7424, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=29, packets=16)
+[Sender] Got REC_MISS for blast=29 missing=1
+[Sender] Retransmitting blast 29 packet 7
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=29 missing=0
+[Sender] Sending blast 30/64 (records 7425-7680, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=30, packets=16)
+[Sender] Got REC_MISS for blast=30 missing=3
+[Sender] Retransmitting blast 30 packet 0
+[Sender] Retransmitting blast 30 packet 13
+[Sender] Retransmitting blast 30 packet 15
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (2/5)
+[Sender] Got REC_MISS for blast=30 missing=1
+[Sender] Retransmitting blast 30 packet 0
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (2/5)
+[Sender] Got REC_MISS for blast=30 missing=0
+[Sender] Sending [NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=4
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=4
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+blast 31/64 (records 7681-7936, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=31, packets=16)
+[Sender] Got REC_MISS for blast=31 missing=5
+[Sender] Retransmitting blast 31 packet 2
+[Sender] Retransmitting blast 31 packet 6
+[Sender] Retransmitting blast 31 packet 11
+[Sender] Retransmitting blast 31 packet 13
+[Sender] Retransmitting blast 31 packet 14
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (2/5)
+[Sender] Got REC_MISS for blast=31 missing=0
+[Sender] Sending blast 32/64 (records 7937-8192, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=32, packets=16)
+[Sender] Got REC_MISS for blast=32 missing=2
+[Sender] Retransmitting blast 32 packet 1
+[Sender] Retransmitting blast 32 packet 3
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (2/5)
+[Sender] Got REC_MISS for blast=32 missing=0
+[Sender] Sending blast 33/64 (records 8193-8448, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=33, packets=16)
+[Sender] Got REC_MISS for blast=33 missing=1
+[Sender] Retransmitting blast 33 packet 12
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (2/5)
+[Sender] Got REC_MISS for blast=33 missing=0
+[Sender] Sending blast 34/64 (records 8449-8704, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=34, packets=16)
+[Sender] Got REC_MISS for blast=34 missing=3
+[Sender] Retransmitting blast 34 packet 0
+[Sender] Retransmitting blast 34 packet 3
+[Sender] Retransmitting blast 34 packet 14
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=34 missing=1
+[Sender] Retransmitting blast 34 packet 0
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=34 missing=0
+[Sender] Sending blast 35/64 (records 8705-8960, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=35, packets=16)
+[Sender] Got REC_MISS for blast=35 missing=3
+[Sender] Retransmitting blast 35 packet 2
+[Sender] Retransmitting blast 35 packet 5
+[Sender] Retransmitting blast 35 packet 13
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=35 missing=0
+[Sender] Sending blast 36/64 (records 8961-9216, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=36, packets=16)
+[Sender] Got REC_MISS for blast=36 missing=1
+[Sender] Retransmitting blast 36 packet 4
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=36 missing=0
+[Sender] Sending blast 37/64 (records 9217-9472, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=37, packets=16)
+[Sender] Got REC_MISS for blast=37 missing=3
+[Sender] Retransmitting blast 37 packet 0
+[Sender] Retransmitting blast 37 packet 9
+[Sender] Retransmitting blast 37 packet 12
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (2/5)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (3/5)
+[Sender] Got REC_MISS for blast=37 missing=1
+[Sender] Retransmitting blast 37 packet 12
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=37 missing=0
+[Sender] Sending blast 38/64 (records 9473-9728, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=38, packets=16)
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=38 missing=1
+[Sender] Retransmitting blast 38 packet 4
+[Sender] Timeout waiting for REC_MISS → retransmitting IS_BLAST_OVER... (1/5)
+[Sender] Got REC_MISS for blast=38 missing=0
+[Sender] Sending blast 39/64 (records 9729-9984, packets 16)
+[Sender] Sent IS_BLAST_OVER (blast=39, packets=16)
+[Sender] Got REC_MISS for blast=39 missing=0
+[Sender] Sending blast 40/64 (records 9985-10240, packets 16)
+[Sender] Sent IS_B[NET] DROPPED outgoing packet type=4
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=3
+[NET] DROPPED outgoing packet type=4
+[NET] DROPPED incoming packet type=5
