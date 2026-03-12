@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<University>
+  <Students>
+    <Student id="1">
+      <Name>New Name</Name>
+      <Email>new@t.com</Email>
+    </Student>
+    <Student id="2">
+      <Name>Jane Smith</Name>
+      <Email>jane.smith@example.com</Email>
+    </Student>
+    <Student id="123">
+      <Name>147</Name>
+      <Email>14@23.nh</Email>
+    </Student>
+    <Student id="100">
+      <Name>Test</Name>
+      <Email>test@test.com</Email>
+    </Student>
+  </Students>
+  <Courses>
+    <Course id="CS101">
+      <Title>Introduction to Computer Science</Title>
+      <Credits>3</Credits>
+    </Course>
+    <Course id="MATH101">
+      <Title>Calculus I</Title>
+      <Credits>4</Credits>
+    </Course>
+  </Courses>
+  <Enrolments>
+    <Enrolment>
+      <StudentId>1</StudentId>
+      <CourseId>CS101</CourseId>
+      <Grade>A</Grade>
+    </Enrolment>
+    <Enrolment>
+      <StudentId>1</StudentId>
+      <CourseId>MATH101</CourseId>
+      <Grade>B+</Grade>
+    </Enrolment>
+    <Enrolment>
+      <StudentId>2</StudentId>
+      <CourseId>CS101</CourseId>
+      <Grade>A-</Grade>
+    </Enrolment>
+  </Enrolments>
+</University>
