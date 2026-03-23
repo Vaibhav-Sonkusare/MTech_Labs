@@ -2,6 +2,22 @@ const prisma = require('../config/prisma');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
+const generateAccessToken = (userId) => {
+  return jwt.sign(
+    { userId },
+    process.env.JWT_SECRET,
+    { expiresIn: "15m" }
+  );
+};
+
+const generateRefreshToken = (userId) => {
+  return jwt.sign(
+    { userId },
+    process.env.JWT_REFRESH_SECRET,
+    { expiresIn: "30d" }
+  );
+};
+
 /**
  * Register User
  */
@@ -32,7 +48,13 @@ exports.register = async (req, res) => {
       }
     });
 
-    res.status(201).json({ message: 'User registered successfully' });
+    const accessToken = generateAccessToken(user.id);
+    const refreshToken = generateRefreshToken(user.id);
+
+    res.status(201).json({
+      access_token: accessToken,
+      refresh_token: refreshToken
+    });
 
   } catch (error) {
     console.error(error);
@@ -61,18 +83,42 @@ exports.login = async (req, res) => {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    // Generate JWT
-    const token = jwt.sign(
-      { userId: user.id },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    const accessToken = generateAccessToken(user.id);
+    const refreshToken = generateRefreshToken(user.id);
 
-    res.json({ token });
+    res.json({
+      access_token: accessToken,
+      refresh_token: refreshToken
+    });
 
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+exports.refresh = async (req, res) => {
+  try {
+
+    const { refresh_token } = req.body;
+
+    if (!refresh_token) {
+      return res.status(401).json({ error: "Refresh token required" });
+    }
+
+    const decoded = jwt.verify(
+      refresh_token,
+      process.env.JWT_REFRESH_SECRET
+    );
+
+    const accessToken = generateAccessToken(decoded.userId);
+
+    res.json({
+      access_token: accessToken
+    });
+
+  } catch (err) {
+    return res.status(401).json({ error: "Invalid refresh token" });
   }
 };
 

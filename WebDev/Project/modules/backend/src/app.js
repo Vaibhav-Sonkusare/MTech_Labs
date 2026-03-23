@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 
 const authRoutes = require('./routes/authRoutes');
+const deviceRoutes = require('./routes/deviceRoutes');
 const activityRoutes = require('./routes/activityRoutes');
 const summaryRoutes = require('./routes/summaryRoutes');
 
@@ -14,6 +15,7 @@ app.use(helmet());
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/devices', deviceRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/summary', summaryRoutes);
 
