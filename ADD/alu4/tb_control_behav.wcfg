@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="tb_control_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="tb_control" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="0.000 ns"></ZoomStartTime>
+      <ZoomEndTime time="151.701 ns"></ZoomEndTime>
+      <Cursor1Time time="148,848.560 ns"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="76"></NameColumnWidth>
+      <ValueColumnWidth column_width="70"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="7" />
+   <wvobject type="logic" fp_name="/tb_control/clk">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_control/rst">
+      <obj_property name="ElementShortName">rst</obj_property>
+      <obj_property name="ObjectShortName">rst</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_control/alu_result_out">
+      <obj_property name="ElementShortName">alu_result_out[7:0]</obj_property>
+      <obj_property name="ObjectShortName">alu_result_out[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_control/pc_out">
+      <obj_property name="ElementShortName">pc_out[7:0]</obj_property>
+      <obj_property name="ObjectShortName">pc_out[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_control/pass_count">
+      <obj_property name="ElementShortName">pass_count[31:0]</obj_property>
+      <obj_property name="ObjectShortName">pass_count[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_control/fail_count">
+      <obj_property name="ElementShortName">fail_count[31:0]</obj_property>
+      <obj_property name="ObjectShortName">fail_count[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_control/cycle_count">
+      <obj_property name="ElementShortName">cycle_count[31:0]</obj_property>
+      <obj_property name="ObjectShortName">cycle_count[31:0]</obj_property>
+   </wvobject>
+</wave_config>
