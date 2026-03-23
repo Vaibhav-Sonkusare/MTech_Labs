@@ -1,0 +1,15 @@
+Time resolution is 1 ps
+PASS: LOAD/STORE verified
+$finish called at time : 61 ns : File "/home/vaibhav/Documents/MTech_Labs/ADD/alu2/alu2.srcs/sim_1/new/tb_control.v" Line 85
+Stopped at time : 0 fs : File "/home/vaibhav/Documents/MTech_Labs/ADD/alu2/alu2.srcs/sim_1/new/tb_control.v" Line 55
+Stopped at time : 10 ns : File "/home/vaibhav/Documents/MTech_Labs/ADD/alu2/alu2.srcs/sim_1/new/tb_control.v" Line 57
+Stopped at time : 10 ns : File "/home/vaibhav/Documents/MTech_Labs/ADD/alu2/alu2.srcs/sim_1/new/tb_control.v" Line 63
+Stopped at time : 20 ns : File "/home/vaibhav/Documents/MTech_Labs/ADD/alu2/alu2.srcs/sim_1/new/tb_control.v" Line 68
+Stopped at time : 0 fs : File "/home/vaibhav/Documents/MTech_Labs/ADD/alu2/alu2.srcs/sim_1/new/tb_control.v" Line 55
+Stopped at time : 10 ns : File "/home/vaibhav/Documents/MTech_Labs/ADD/alu2/alu2.srcs/sim_1/new/tb_control.v" Line 57
+Stopped at time : 10 ns : File "/home/vaibhav/Documents/MTech_Labs/ADD/alu2/alu2.srcs/sim_1/new/tb_control.v" Line 63
+Stopped at time : 20 ns : File "/home/vaibhav/Documents/MTech_Labs/ADD/alu2/alu2.srcs/sim_1/new/tb_control.v" Line 68
+Stopped at time : 30 ns : File "/home/vaibhav/Documents/MTech_Labs/ADD/alu2/alu2.srcs/sim_1/new/tb_control.v" Line 73
+Stopped at time : 40 ns : File "/home/vaibhav/Documents/MTech_Labs/ADD/alu2/alu2.srcs/sim_1/new/tb_control.v" Line 78
+PASS: LOAD/STORE verified
+$finish called at time : 61 ns : File "/home/vaibhav/Documents/MTech_Labs/ADD/alu2/alu2.srcs/sim_1/new/tb_control.v" Line 85

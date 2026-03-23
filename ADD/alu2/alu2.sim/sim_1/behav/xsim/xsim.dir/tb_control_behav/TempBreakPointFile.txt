@@ -1,0 +1,7 @@
+Breakpoint File Version 1.0
+57,true,"/home/vaibhav/Documents/MTech_Labs/ADD/alu2/alu2.srcs/sim_1/new/tb_control.v"
+63,true,"/home/vaibhav/Documents/MTech_Labs/ADD/alu2/alu2.srcs/sim_1/new/tb_control.v"
+68,true,"/home/vaibhav/Documents/MTech_Labs/ADD/alu2/alu2.srcs/sim_1/new/tb_control.v"
+73,true,"/home/vaibhav/Documents/MTech_Labs/ADD/alu2/alu2.srcs/sim_1/new/tb_control.v"
+78,true,"/home/vaibhav/Documents/MTech_Labs/ADD/alu2/alu2.srcs/sim_1/new/tb_control.v"
+55,true,"/home/vaibhav/Documents/MTech_Labs/ADD/alu2/alu2.srcs/sim_1/new/tb_control.v"

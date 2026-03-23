@@ -1,0 +1,15 @@
+Time resolution is 1 ps
+PASS: ADD
+PASS: STORE
+PASS: LOAD
+COMPARE result = 255
+Final R1 =  15
+Memory[3] =  15
+$finish called at time : 50 ns : File "/home/vaibhav/Documents/MTech_Labs/ADD/alu3/alu3.srcs/sim_1/new/tb_control.v" Line 75
+PASS: ADD
+PASS: STORE
+PASS: LOAD
+COMPARE result = 255
+Final R1 =  15
+Memory[3] =  15
+$finish called at time : 50 ns : File "/home/vaibhav/Documents/MTech_Labs/ADD/alu3/alu3.srcs/sim_1/new/tb_control.v" Line 75
