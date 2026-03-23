@@ -35,3 +35,6 @@ Thumbs.db
 
 # Optional: dependency directories for monorepos
 **/node_modules/
+
+# prisma database generated
+/src/generated/prisma
