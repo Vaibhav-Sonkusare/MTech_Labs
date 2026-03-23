@@ -1,200 +1,352 @@
-# Smart Digital Wellbeing & Productivity Analytics Platform
-## Backend – Project Context
+🧠 Smart Digital Wellbeing & Productivity Analytics Platform
+Backend Development Summary
 
----
+The backend is a Node.js + Express REST API that authenticates users, registers devices, receives browser activity logs, classifies them using an AI service, stores them in PostgreSQL using Prisma ORM, and computes productivity analytics for a dashboard.
 
-## 1. System Overview
+The system is designed to support multiple devices per user, secure authentication, and scalable analytics processing.
 
-This backend is part of a larger platform designed to track browser activity, classify it using AI, compute productivity analytics, and serve structured insights to a frontend dashboard.
+1️⃣ Technology Stack
+Backend Runtime
 
-The backend is implemented as a REST API using:
+Node.js
 
-- Node.js
-- Express.js
-- Prisma ORM
-- PostgreSQL
-- JWT Authentication
-- Bcrypt for password hashing
+Web Framework
 
-The system follows a modular, layered architecture.
+Express.js
 
----
+Database
 
-## 2. Backend Responsibilities
+PostgreSQL
 
-The backend:
+ORM
 
-- Authenticates users
-- Receives browser activity logs from extension
-- Stores raw activity data
-- Calls AI microservice for classification
-- Stores classification results
-- Computes productivity analytics
-- Serves aggregated dashboard data
+Prisma
 
-The backend does NOT:
+Authentication
 
-- Capture browser data directly
-- Train or host ML models
-- Render frontend UI
-- Use WebSockets (MVP is REST-based)
+JWT
 
----
+Access Token (15 minutes)
 
-## 3. High-Level Architecture
+Refresh Token (30 days)
 
-Request Flow:
+Security
 
-Browser Extension  
-→ REST API (Express)  
-→ Auth Middleware  
-→ Controller  
-→ Prisma (PostgreSQL)  
-→ AI Service Layer  
-→ Analytics Layer  
-→ JSON Response  
+bcrypt → password hashing
 
-The AI classification is abstracted inside a service module.
+helmet → HTTP security headers
 
----
+cors → cross-origin protection
 
-## 4. Tech Stack
+AI Integration
 
-Runtime: Node.js  
-Framework: Express.js  
-Database: PostgreSQL  
-ORM: Prisma  
-Authentication: JWT  
-Password Hashing: bcrypt  
-HTTP Client (AI calls): axios  
-Environment Management: dotenv  
-Security Middleware: helmet, cors  
+External FastAPI classification service (currently mocked)
 
----
+2️⃣ Backend Architecture
 
-## 5. Folder Structure
+The backend follows a layered modular architecture.
+
+Routes
+  ↓
+Controllers
+  ↓
+Services
+  ↓
+Database (Prisma)
+  ↓
+Analytics Layer
+
+Responsibilities are separated so that:
+
+Layer	Responsibility
+Routes	Define API endpoints
+Controllers	Handle requests/responses
+Services	External services (AI)
+Middleware	Authentication
+Analytics	Data aggregation logic
+Prisma	Database access
+3️⃣ Folder Structure
 backend/
 │
 ├── prisma/
-│ └── schema.prisma
+│   └── schema.prisma
 │
 ├── src/
-│ ├── config/
-│ │ └── prisma.js
-│ │
-│ ├── controllers/
-│ │ ├── authController.js
-│ │ ├── activityController.js
-│ │ ├── summaryController.js
-│ │
-│ ├── routes/
-│ │ ├── authRoutes.js
-│ │ ├── activityRoutes.js
-│ │ ├── summaryRoutes.js
-│ │
-│ ├── services/
-│ │ └── aiService.js
-│ │
-│ ├── analytics/
-│ │ └── dailyAnalytics.js
-│ │
-│ ├── middleware/
-│ │ └── authMiddleware.js
-│ │
-│ └── app.js
+│   ├── config/
+│   │     └── prisma.js
+│   │
+│   ├── controllers/
+│   │     ├── authController.js
+│   │     ├── activityController.js
+│   │     ├── deviceController.js
+│   │     └── summaryController.js
+│   │
+│   ├── routes/
+│   │     ├── authRoutes.js
+│   │     ├── activityRoutes.js
+│   │     ├── deviceRoutes.js
+│   │     └── summaryRoutes.js
+│   │
+│   ├── services/
+│   │     └── aiService.js
+│   │
+│   ├── analytics/
+│   │     └── dailyAnalytics.js
+│   │
+│   ├── middleware/
+│   │     └── authMiddleware.js
+│   │
+│   └── app.js
 │
 ├── server.js
 └── .env
 
-Architecture Rule:
-- Controllers handle request/response only.
-- Services handle business logic and external calls.
-- Analytics layer handles aggregation logic.
-- Middleware handles authentication and cross-cutting concerns.
+This modular structure prevents tightly coupled code.
 
----
+4️⃣ Database Design (Prisma)
 
-## 6. Database Schema (Prisma)
+The database contains three core models.
 
-### User
+User
 
-- id (UUID, primary key)
-- email (unique)
-- passwordHash
-- createdAt
+Represents a registered platform user.
 
-### ActivityLog
+Fields:
 
-- id (UUID)
-- userId (FK → User)
-- domain
-- title
-- durationSeconds
-- category (nullable until classified)
-- confidence (nullable)
-- processed (boolean)
-- timestamp
-- indexed on userId and timestamp
+id
+email
+passwordHash
+createdAt
 
-### DailySummary
+Relationships:
 
-- id (UUID)
-- userId (FK)
-- date
-- productiveTime
-- distractingTime
-- neutralTime
-- learningTime
-- score
-- unique constraint on (userId, date)
+User
+ ├── Devices
+ └── ActivityLogs
+Device
 
-Currently daily summaries are computed on-demand (not persisted).
+Represents a browser extension instance.
 
----
+Example devices:
 
-## 7. Implemented API Endpoints
+Firefox extension
 
-### Authentication
+Chrome extension
 
-POST   /api/auth/register
-POST   /api/auth/login
-GET    /api/auth/me
+Edge extension
 
-Authentication is JWT-based.
-Protected routes require:
+Fields:
+
+id
+userId
+deviceName
+deviceType
+createdAt
+
+Relationship:
+
+Device
+ └── ActivityLogs
+ActivityLog
+
+Stores browsing activity.
+
+Fields:
+
+id
+userId
+deviceId
+domain
+title
+durationSeconds
+category
+confidence
+timestamp
+processed
+
+Indexes:
+
+userId
+deviceId
+timestamp
+5️⃣ Authentication System
+
+Authentication uses JWT tokens with refresh flow.
+
+Access Token
+
+Valid for 15 minutes
+
+Sent in headers
 
 Authorization: Bearer <token>
+Refresh Token
 
----
+Valid for 30 days
 
-### Activity Logging
+Used to generate new access tokens
+
+6️⃣ Authentication Endpoints
+Register
+POST /api/auth/register
+
+Body
+
+{
+  "email": "user@email.com",
+  "password": "password"
+}
+
+Behavior
+
+password hashed using bcrypt
+
+user stored in database
+
+access + refresh tokens returned
+
+Login
+POST /api/auth/login
+
+Response
+
+{
+  "access_token": "...",
+  "refresh_token": "..."
+}
+Refresh Token
+POST /api/auth/refresh
+
+Input
+
+{
+  "refresh_token": "..."
+}
+
+Output
+
+{
+  "access_token": "..."
+}
+7️⃣ Device Registration System
+
+Browser extensions must register as devices.
+
+Endpoint:
+
+POST /api/devices/register
+
+Headers
+
+Authorization: Bearer ACCESS_TOKEN
+
+Body
+
+{
+  "device_name": "Firefox Browser",
+  "device_type": "browser_extension"
+}
+
+Backend actions:
+
+Verify JWT
+
+Extract userId
+
+Create device record
+
+Return device_id
+
+Response
+
+{
+  "device_id": "uuid"
+}
+8️⃣ Activity Logging System
+
+This is the core feature of the platform.
+
+Endpoint:
 
 POST /api/activity
 
-Input:
+Headers
+
+Authorization: Bearer ACCESS_TOKEN
+
+Body
 
 {
+  "device_id": "uuid",
   "domain": "github.com",
   "title": "Prisma Docs",
   "duration_seconds": 300,
   "timestamp": "2026-03-03T14:00:00Z"
 }
+Activity Processing Flow
+Extension
+   ↓
+POST /api/activity
+   ↓
+JWT verification
+   ↓
+Verify device belongs to user
+   ↓
+Insert activity log
+   ↓
+Call AI classification service
+   ↓
+Update category + confidence
+   ↓
+Return success response
+9️⃣ AI Classification Layer
 
-Flow:
-1. Validate JWT
-2. Insert raw log
-3. Call AI service
-4. Update log with category + confidence
-5. Return success
+Located in:
 
----
+src/services/aiService.js
 
-### Daily Summary
+Current implementation:
+
+Mock classification logic
+
+Future implementation:
+
+POST http://ai-service/classify
+
+Input
+
+{
+  domain,
+  title
+}
+
+Output
+
+{
+  category,
+  confidence
+}
+🔟 Daily Summary Analytics
+
+Endpoint:
 
 GET /api/summary/daily?date=YYYY-MM-DD
 
-Response example:
+Purpose:
 
+Compute productivity statistics.
+
+Steps:
+
+Fetch activity logs for that day
+
+Group by category
+
+Compute time totals
+
+Calculate productivity score
+
+Example Response
 {
   "date": "2026-03-03",
   "productive_time": 600,
@@ -205,69 +357,113 @@ Response example:
   "score": 0.59
 }
 
-Score formula (current version):
+Productivity score formula:
 
 score = productive_time / total_time
+1️⃣1️⃣ Browser Extension Workflow
 
----
+The extension communicates with the backend using this flow.
 
-## 8. AI Integration
+Step 1 — Login
+POST /api/auth/login
 
-AI classification is abstracted in:
+Store:
 
-src/services/aiService.js
+access_token
+refresh_token
+Step 2 — Register Device
+POST /api/devices/register
 
-Currently:
-- Mock implementation (rule-based)
+Store:
 
-Future:
-- Replace with axios call to FastAPI service
-- Endpoint: POST http://ai-service/classify
-- Input: { domain, title }
-- Output: { category, confidence }
+device_id
+Step 3 — Send Activity Logs
+POST /api/activity
 
----
+Payload includes:
 
-## 9. Internal Design Principles
+device_id
+domain
+title
+duration_seconds
+timestamp
+1️⃣2️⃣ Security Measures
 
-- Clean separation of concerns
-- Stateless authentication
-- Modular structure
-- Database indexing for analytics performance
-- Future-ready for async processing (processed flag)
-- RESTful API design
-- No frontend coupling
+The backend enforces:
 
----
+JWT verification on protected routes
 
-## 10. Current MVP Status
+password hashing using bcrypt
 
-Working:
+device ownership validation
 
-- User registration & login
-- JWT authentication
-- Activity logging
-- Mock AI classification
-- Daily summary analytics
-- Prisma + PostgreSQL integration
+short-lived access tokens
 
-Not yet implemented:
+refresh token rotation
 
-- Weekly summary
-- Category statistics endpoint
-- Peak hours analytics
-- Weighted productivity scoring
-- Real AI microservice integration
-- Precomputed daily summaries
-- Input validation library (Zod/Joi)
-- Rate limiting
-- Logging system
-- Automated tests
+These prevent:
 
----
+unauthorized activity submissions
 
-## 11. One-Sentence Backend Summary
+device spoofing
 
-A modular Node.js + Express REST API that authenticates users, receives browser activity logs, classifies them via an AI service layer, stores structured data in PostgreSQL using Prisma ORM, computes productivity analytics, and serves aggregated dashboard-ready JSON responses.
+session hijacking
 
----
+1️⃣3️⃣ Current System Capabilities
+
+The backend now supports:
+
+✔ User registration and login
+✔ Access/refresh token authentication
+✔ Multi-device user accounts
+✔ Secure device registration
+✔ Per-device activity tracking
+✔ AI-based activity classification
+✔ Daily productivity analytics
+✔ Modular backend architecture
+
+1️⃣4️⃣ Current System Architecture
+User
+ ├── Device (Firefox Extension)
+ │       └── ActivityLogs
+ │
+ ├── Device (Chrome Extension)
+ │       └── ActivityLogs
+ │
+ └── Analytics
+
+This architecture allows future expansion to:
+
+mobile apps
+
+desktop monitoring agents
+
+team productivity dashboards
+
+1️⃣5️⃣ Features Not Yet Implemented
+
+Planned improvements include:
+
+weekly summary analytics
+
+category statistics endpoint
+
+peak productivity hours
+
+real AI microservice integration
+
+background job processing
+
+rate limiting
+
+request validation
+
+logging system
+
+automated tests
+
+deployment pipeline
+
+✅ Final One-Sentence Summary
+
+The backend is a modular Node.js + Express REST API that authenticates users, registers browser devices, securely receives browsing activity logs, classifies them via an AI service, stores structured data in PostgreSQL using Prisma ORM, and computes productivity analytics for a dashboard.

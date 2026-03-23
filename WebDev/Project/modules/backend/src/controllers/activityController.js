@@ -2,31 +2,55 @@ const prisma = require('../config/prisma');
 const aiService = require('../services/aiService');
 
 exports.logActivity = async (req, res) => {
-  try {
-    const { domain, title, duration_seconds, timestamp } = req.body;
 
-    // Basic validation
-    if (!domain || !duration_seconds || !timestamp) {
-      return res.status(400).json({ error: 'Missing required fields' });
+  try {
+
+    const {
+      device_id,
+      domain,
+      title,
+      duration_seconds,
+      timestamp
+    } = req.body;
+
+    if (!device_id || !domain || !duration_seconds || !timestamp) {
+      return res.status(400).json({
+        error: "Missing required fields"
+      });
     }
 
-    // Insert raw log first
+    // 1️⃣ Verify device belongs to the user
+    const device = await prisma.device.findFirst({
+      where: {
+        id: device_id,
+        userId: req.userId
+      }
+    });
+
+    if (!device) {
+      return res.status(403).json({
+        error: "Invalid device"
+      });
+    }
+
+    // 2️⃣ Insert raw activity log
     const activity = await prisma.activityLog.create({
       data: {
         userId: req.userId,
+        deviceId: device_id,
         domain,
-        title: title || '',
+        title,
         durationSeconds: duration_seconds,
         timestamp: new Date(timestamp),
         processed: false
       }
     });
 
-    // Call AI classification (mock)
+    // 3️⃣ Call AI classification service
     const { category, confidence } =
       await aiService.classifyActivity(domain, title);
 
-    // Update same log
+    // 4️⃣ Update log with classification
     await prisma.activityLog.update({
       where: { id: activity.id },
       data: {
@@ -37,13 +61,16 @@ exports.logActivity = async (req, res) => {
     });
 
     res.status(201).json({
-      message: 'Activity logged successfully',
+      message: "Activity logged",
       category,
       confidence
     });
 
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+  } catch (err) {
+
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+
   }
+
 };
