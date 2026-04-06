@@ -1,0 +1,11 @@
+id,name,age,score,skills
+1,Alice Smith,20,85,Java;Python
+2,bob jones,22,null,C++;Go
+3,Charlie Brown,23,90,Java;Scala
+4,david lee,null,75,Python;R
+5,Eve Adams,21,95,JavaScript
+6,frank white,22,60,null
+7,Grace Ho,20,null,SQL;Java
+8,helen hunt,24,88,Python;Docker
+9,Ivan Drago,25,92,C++;Rust
+10,jane doe,21,78,Java;AWS
