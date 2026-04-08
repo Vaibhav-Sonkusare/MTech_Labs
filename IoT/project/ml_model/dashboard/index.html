@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Geyser Dashboard</title>
+    <!-- Fonts and Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- MQTT Client -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <span class="icon">💧</span>
+            Context-Aware Smart Geyser
+        </div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <div id="sim-time" style="font-weight: 600; color: var(--accent);">Time: --:--</div>
+            <div class="status" id="connection-status">Connecting to MQTT...</div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Geysers Grid -->
+        <section class="grid" id="geysers-grid">
+            <!-- Dynamically populated by JS (Geyser 1 to 6) -->
+        </section>
+        
+        <!-- Live System Logs -->
+        <section class="logs-section">
+            <h3>🌩️ Live Inference Feed</h3>
+            <div id="logs-container" class="logs-container">
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
