@@ -1,12 +1,11 @@
 import { AuthManager } from "./authManager.js";
-
-const API_URL = "http://localhost:3000";
+import { API_BASE } from "./config.js";
 
 export async function sendActivity(activity) {
 
     let token = await AuthManager.getAccessToken();
 
-    let res = await fetch(`${API_URL}/api/activity`, {
+    let res = await fetch(`${API_BASE}/api/activity`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -19,7 +18,7 @@ export async function sendActivity(activity) {
 
         token = await AuthManager.refreshAccessToken();
 
-        res = await fetch(`${API_URL}/api/activity`, {
+        res = await fetch(`${API_BASE}/api/activity`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
