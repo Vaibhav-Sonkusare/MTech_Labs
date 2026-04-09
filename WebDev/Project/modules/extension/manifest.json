@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "Smart Digital Wellbeing Tracker",
-    "version": "1.14",
+    "version": "1.16",
     "description": "Tracks browsing activity and sends it to the Smart Digital Wellbeing Platform.",
     "permissions": [
         "tabs",

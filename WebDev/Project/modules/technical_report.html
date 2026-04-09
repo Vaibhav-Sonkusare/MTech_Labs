@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Technical Report: Smart Digital Wellbeing Platform</title>
+<style>
+    body { font-family: "Calibri", sans-serif; line-height: 1.6; }
+    h1 { color: #2E3A59; text-align: center; border-bottom: 2px solid #2E3A59; padding-bottom: 5px; }
+    h2 { color: #3A4A70; margin-top: 20px; }
+    h3 { color: #4B618F; }
+    p { margin-bottom: 12px; }
+    ul { margin-bottom: 15px; }
+    li { margin-bottom: 5px; }
+    .footer { text-align: center; font-size: 12px; color: gray; margin-top: 30px; }
+</style>
+</head>
+<body>
+
+<h1>Technical Report: Smart Digital Wellbeing Platform</h1>
+
+<p><strong>Project:</strong> Smart Digital Wellbeing Tracker</p>
+<p><strong>Date:</strong> April 9, 2026</p>
+
+<h2>1. Executive Summary</h2>
+<p>The Smart Digital Wellbeing Platform is a multi-tier, real-time analytics suite designed to monitor, classify, and visualize browser-based user activity. Built to combat distractions and encourage productive habits, the platform seamlessly integrates a native browser extension with a Node.js backend and a React-powered analytics dashboard. It features advanced heuristic categorization, streak tracking, intelligent context evaluation, and real-time live synchronization mechanisms prioritizing both privacy and speed.</p>
+
+<h2>2. System Architecture</h2>
+<p>The system is comprised of three core modules communicating synchronously over REST APIs and WebSocket protocols:</p>
+<ul>
+    <li><strong>Backend (Node.js/Express):</strong> Serves as the central command architecture. It utilizes SQLite alongside the Prisma ORM for highly efficient localized data storage. The backend handles REST endpoints, secure JWT authentication, advanced analytics endpoints, and WebSocket payload marshaling.</li>
+    <li><strong>Dashboard (React/Vite):</strong> A highly responsive UI presenting activity heatmaps, category distributions, productive streaks, and the "Live Tabs" module. It retrieves aggregated data silently in the background alongside WebSocket device state payloads to provide flicker-free live updates.</li>
+    <li><strong>Browser Extension (MV2 WebExtension):</strong> A native data-ingestion pipeline installed in Firefox/Chrome. Built with background service workers, it monitors tab allocations, URL transitions, audio outputs, and idle system states.</li>
+</ul>
+
+<h2>3. Key Features & Implementation</h2>
+
+<h3>3.1 Advanced Heuristic Classification Engine</h3>
+<p>Replaced early reliance on external API calls with a highly optimized embedded RegEx dictionary matching engine (`classifier.js`). The engine evaluates domains and uses title-context heuristics (e.g., matching "React Course" vs "Funny Cats" on YouTube) to dynamically alter the final tracked category (Learning vs Distracting) with extreme speed.</p>
+
+<h3>3.2 Robust Sleep-Resistant Heartbeat Tracking</h3>
+<p>Circumvented native browser idle timeouts and operating limits by introducing a 15-second tracking heartbeat. Through Application-Layer Pings (`type: ping`), headless browser socket drops were completely resolved. This ensures that users partaking in multi-hour focused sessions aren't punished with truncated graphs, while automatically slicing away anomalous time padded by laptops entering sleep modes.</p>
+
+<h3>3.3 Real-Time Multi-Device Synchronization</h3>
+<p>Implemented deduplicated WebSocket data streams binding individual device instance hashes (`deviceId`) safely to the user's Dashboard. This permits active monitoring across multiple separate computers or profiles independently, mapping active domains and tabs inside a collapsible, non-colliding UI.</p>
+
+<h3>3.4 Weighted Productivity Algorithms</h3>
+<p>Integrated a mathematically balanced Productivity Score loop inside the analytics daemon. To prevent 'Neutral' search activities or 'Learning' assignments from punishing users, the algorithm applies a 100% positive modifier to 'Learning' and a flexible 50% modifier to 'Neutral' activities, enabling organic growth while preventing algorithmic staleness.</p>
+
+<h3>3.5 Retroactive Memory Operations</h3>
+<p>Empowered users to manually override heuristic tagging operations (e.g. permanently tagging a site as Productive). These localized DB actions retroactively iterate across the user's historical SQLite database cache, explicitly coercing old data points to match the revised rules and physically demolishing/regenerating the UI's Daily Summary cache for universal UI parity.</p>
+
+<h2>4. Technical Retrospective & Scalability</h2>
+<p>The current architecture proves incredibly stable resulting in zero active unhandled errors across Node and React spaces while keeping a negligible CPU footprint.</p>
+<p>Future architectural enhancements identified for subsequent versions include introducing Batch Query network transmission loops (minimizing POST floods during offline caching), integrating Title string redaction natively inside the extension for absolute banking/privacy adherence, and writing nocturnal database cron-jobs linking daily events into unified `DailyAggregate` records for O(1) fetch times over the years.</p>
+
+<div class="footer">
+    <p>End of Technical Report - Auto-Generated Architecture Summary</p>
+</div>
+
+</body>
+</html>

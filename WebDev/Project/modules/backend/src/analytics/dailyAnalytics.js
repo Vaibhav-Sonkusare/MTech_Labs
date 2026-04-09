@@ -69,13 +69,11 @@ exports.calculateDailySummary = async (userId, dateString) => {
     }
   });
 
-  const totalTime =
-    productiveTime + distractingTime + neutralTime + learningTime;
+  const totalTime = productiveTime + distractingTime + neutralTime + learningTime;
+  const activeProductiveWeight = productiveTime + learningTime + (neutralTime * 0.5);
+  const totalActiveWeight = productiveTime + distractingTime + learningTime + (neutralTime * 0.5);
 
-  const score =
-    totalTime === 0
-      ? 0
-      : productiveTime / totalTime;
+  const score = totalActiveWeight === 0 ? 0 : activeProductiveWeight / totalActiveWeight;
 
   const result = {
     date: dateString,

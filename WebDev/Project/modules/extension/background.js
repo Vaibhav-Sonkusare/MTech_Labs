@@ -104,6 +104,9 @@ setInterval(() => {
 
 setInterval(() => {
     sessionManager.updateHeartbeat();
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "ping" }));
+    }
 }, 15000);
 
 // ─── WebSocket Connection (live tabs to dashboard) ───

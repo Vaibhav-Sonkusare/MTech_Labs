@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const auth = require('../middleware/authMiddleware');
 const router = require('express').Router();
+const classifier = require('../services/classifier');
 
 /**
  * GET /api/categories/custom — list user's custom overrides
@@ -41,6 +42,17 @@ router.put('/custom', auth, async (req, res) => {
       create: { userId: req.userId, domain, category },
     });
 
+    // Retroactively update all existing activity logs for this domain
+    await prisma.activityLog.updateMany({
+      where: { userId: req.userId, domain },
+      data: { category }
+    });
+
+    // Demolish all cached Daily Summaries so they explicitly recalculate next fetch
+    await prisma.dailySummary.deleteMany({
+      where: { userId: req.userId }
+    });
+
     res.json({ domain: override.domain, category: override.category });
   } catch (err) {
     console.error(err);
@@ -57,6 +69,27 @@ router.delete('/custom/:domain', auth, async (req, res) => {
     await prisma.customCategory.deleteMany({
       where: { userId: req.userId, domain },
     });
+
+    // Replay classification engine against historical titles
+    const logs = await prisma.activityLog.findMany({
+      where: { userId: req.userId, domain },
+      select: { id: true, title: true }
+    });
+
+    const updates = logs.map(log => {
+      const autoClass = classifier.classify(domain, log.title);
+      return prisma.activityLog.update({
+        where: { id: log.id },
+        data: { category: autoClass ? autoClass.category : 'neutral' }
+      });
+    });
+    await Promise.all(updates);
+
+    // Demolish all cached Daily Summaries
+    await prisma.dailySummary.deleteMany({
+      where: { userId: req.userId }
+    });
+
     res.json({ deleted: true });
   } catch (err) {
     console.error(err);
