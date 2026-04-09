@@ -54,6 +54,11 @@ wss.on('connection', (ws, req) => {
       return;
     }
 
+    if (msg.type === 'ping') {
+      ws.isAlive = true;
+      return;
+    }
+
     // First message must be auth
     if (msg.type === 'auth') {
       try {
