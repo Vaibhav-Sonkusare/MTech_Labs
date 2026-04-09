@@ -20,7 +20,7 @@ exports.registerDevice = async (req, res) => {
             }
         });
 
-        res.json({
+        res.status(201).json({
             device_id: device.id
         });
 

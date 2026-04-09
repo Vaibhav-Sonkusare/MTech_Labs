@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+venv/
+
+# Environment
+.env
+.env.local
+
+# Database
+*.db
+*.db-journal
+
+# Build output
+dist/
+
+# Extension packaging
+web-ext-artifacts/
+.amo-upload-uuid
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,14 +1,15 @@
-// Mock AI classification service
+const classifier = require('./classifier');
 
+/**
+ * Classify browsing activity using the built-in rule-based classifier.
+ */
 exports.classifyActivity = async (domain, title) => {
-  // Very simple mock logic
-  if (domain.includes('youtube')) {
-    return { category: 'distracting', confidence: 0.85 };
-  }
+  return classifier.classify(domain, title);
+};
 
-  if (domain.includes('github') || domain.includes('stackoverflow')) {
-    return { category: 'productive', confidence: 0.92 };
-  }
-
-  return { category: 'neutral', confidence: 0.60 };
+/**
+ * Classify with user-specific overrides (checks DB first).
+ */
+exports.classifyWithOverrides = async (domain, title, userId, prisma) => {
+  return classifier.classifyWithOverrides(domain, title, userId, prisma);
 };

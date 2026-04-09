@@ -1,38 +1,68 @@
-const API_BASE = "http://localhost:3000";
+import { API_BASE } from "./config.js";
 
-document.getElementById("loginBtn").addEventListener("click", async () => {
+const loggedInView = document.getElementById("loggedInView");
+const notLoggedInView = document.getElementById("notLoggedInView");
 
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
-    const status = document.getElementById("status");
+// ─── Format Time ───
+function formatTime(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
 
-    try {
-
-        const res = await fetch(`${API_BASE}/api/auth/login`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ email, password })
-        });
-
-        if (!res.ok) {
-            throw new Error("Login failed");
-        }
-
-        const data = await res.json();
-
-        await browser.storage.local.set({
-            access_token: data.access_token,
-            refresh_token: data.refresh_token
-        });
-
-        status.textContent = "Login successful.";
-
-    } catch (err) {
-
-        status.textContent = "Login failed.";
-
+// ─── Fetch Metrics ───
+async function fetchMetrics(token) {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const res = await fetch(`${API_BASE}/api/summary/daily/${today}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (res.ok) {
+      const summary = await res.json();
+      document.getElementById("metricsArea").style.display = "block";
+      document.getElementById("popupScore").textContent = `${Math.round((summary.score || 0) * 100)}%`;
+      document.getElementById("popupProductive").textContent = formatTime(summary.productiveTime || 0);
+      document.getElementById("popupDistracting").textContent = formatTime(summary.distractingTime || 0);
     }
+  } catch (err) {
+    console.error("Failed to fetch metrics", err);
+  }
+}
 
+// ─── Check login state ───
+async function init() {
+  const data = await browser.storage.local.get(["access_token", "user_email"]);
+  if (data.access_token) {
+    loggedInView.style.display = "block";
+    notLoggedInView.style.display = "none";
+    document.getElementById("userEmail").textContent = data.user_email || "User";
+    
+    // Fetch and show metrics
+    fetchMetrics(data.access_token);
+  } else {
+    loggedInView.style.display = "none";
+    notLoggedInView.style.display = "block";
+  }
+}
+
+// ─── Open Dashboard ───
+document.getElementById("openDashboard").addEventListener("click", () => {
+  browser.tabs.create({ url: `${API_BASE}/` });
+  window.close();
 });
+
+// ─── Open Login Page ───
+document.getElementById("openLoginBtn").addEventListener("click", () => {
+  browser.tabs.create({ url: `${API_BASE}/login` });
+  window.close();
+});
+
+// ─── Logout ───
+document.getElementById("logoutBtn").addEventListener("click", async () => {
+  await browser.storage.local.remove(["access_token", "refresh_token", "user_email"]);
+  init();
+});
+
+init();

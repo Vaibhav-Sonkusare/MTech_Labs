@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -15,6 +15,8 @@ model User {
 
   devices      Device[]
   activityLogs ActivityLog[]
+  dailySummaries DailySummary[]
+  customCategories CustomCategory[]
 }
 
 model Device {
@@ -50,4 +52,34 @@ model ActivityLog {
   @@index([userId])
   @@index([deviceId])
   @@index([timestamp])
+}
+
+model DailySummary {
+  id              String   @id @default(uuid())
+  userId          String
+  date            DateTime
+  productiveTime  Int      @default(0)
+  distractingTime Int      @default(0)
+  neutralTime     Int      @default(0)
+  learningTime    Int      @default(0)
+  totalTime       Int      @default(0)
+  score           Float    @default(0)
+  computedAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
+  @@index([userId])
+}
+
+model CustomCategory {
+  id       String @id @default(uuid())
+  userId   String
+  domain   String
+  category String
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, domain])
+  @@index([userId])
 }

@@ -1,6 +1,17 @@
 import { AuthManager } from "./authManager.js";
+import { API_BASE } from "./config.js";
 
-const API_BASE = "http://localhost:3000";
+/**
+ * Detect the browser name for device registration.
+ */
+function getBrowserName() {
+  if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+    if (navigator.userAgent.includes('Firefox')) return 'Firefox';
+    return 'Chrome';
+  }
+  if (typeof browser !== 'undefined') return 'Firefox';
+  return 'Browser';
+}
 
 export class DeviceManager {
 
@@ -19,7 +30,7 @@ export class DeviceManager {
                 "Authorization": `Bearer ${token}`
             },
             body: JSON.stringify({
-                device_name: "Firefox Browser",
+                device_name: `${getBrowserName()} Extension`,
                 device_type: "browser_extension"
             })
         });
