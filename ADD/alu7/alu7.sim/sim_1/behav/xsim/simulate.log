@@ -1,0 +1,8 @@
+Time resolution is 1 ps
+================================================
+  Testbench: Conditional Execution Program
+================================================
+Execution Halted at PC = 8
+Result stored at mem[4] = 11
+================================================
+$finish called at time : 86 ns : File "/home/vaibhav/Documents/MTech_Labs/ADD/alu7/alu7.srcs/sim_1/new/tb_control.v" Line 61
