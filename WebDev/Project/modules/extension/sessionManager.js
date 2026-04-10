@@ -3,7 +3,6 @@ import { sendActivity } from "./apiClient.js";
 import { DeviceManager } from "./deviceManager.js";
 
 const MIN_SESSION_SECONDS = 5;
-const MAX_SESSION_SECONDS = 3600;
 
 export class SessionManager {
 
@@ -28,26 +27,35 @@ export class SessionManager {
             url: tab.url,
             domain: domain,
             title: tab.title || "",
-            startTime: Date.now()
+            startTime: Date.now(),
+            lastHeartbeat: Date.now()
         };
 
         this.lastUrl = tab.url;
 
-        console.log("Session started", this.currentSession);
+    }
+
+    updateHeartbeat() {
+        if (this.currentSession) {
+            this.currentSession.lastHeartbeat = Date.now();
+        }
     }
 
     async endSession() {
 
         if (!this.currentSession) return;
 
-        const duration = durationSeconds(this.currentSession.startTime);
+        let endTime = Date.now();
 
-        if (duration < MIN_SESSION_SECONDS) {
-            this.currentSession = null;
-            return;
+        // If it has been more than 60 seconds since the last heartbeat, the computer was asleep/suspended.
+        // Cap the session end exactly to the last known heartbeat.
+        if (endTime - this.currentSession.lastHeartbeat > 60000) {
+            endTime = this.currentSession.lastHeartbeat;
         }
 
-        if (duration > MAX_SESSION_SECONDS) {
+        const duration = Math.round((endTime - this.currentSession.startTime) / 1000);
+
+        if (duration < MIN_SESSION_SECONDS) {
             this.currentSession = null;
             return;
         }
@@ -67,8 +75,6 @@ export class SessionManager {
         if (!success) {
             await this.queueActivity(activity);
         }
-
-        console.log("Session ended", activity);
 
         this.currentSession = null;
 

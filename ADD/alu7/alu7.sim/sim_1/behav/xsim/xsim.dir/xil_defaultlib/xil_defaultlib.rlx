@@ -1,0 +1,11 @@
+0.7
+2020.2
+Oct 19 2021
+02:56:52
+/home/vaibhav/Documents/MTech_Labs/ADD/alu7/alu7.sim/sim_1/behav/xsim/glbl.v,1634335545,verilog,,,,glbl,,,,,,,,
+/home/vaibhav/Documents/MTech_Labs/ADD/alu7/alu7.srcs/sim_1/new/tb_control.v,1775645777,verilog,,,,tb_control,,,,,,,,
+/home/vaibhav/Documents/MTech_Labs/ADD/alu7/alu7.srcs/sources_1/new/alu.v,1774604372,verilog,,/home/vaibhav/Documents/MTech_Labs/ADD/alu7/alu7.srcs/sources_1/new/control.v,,alu,,,,,,,,
+/home/vaibhav/Documents/MTech_Labs/ADD/alu7/alu7.srcs/sources_1/new/control.v,1774606592,verilog,,/home/vaibhav/Documents/MTech_Labs/ADD/alu7/alu7.srcs/sources_1/new/instr_memory.v,,control,,,,,,,,
+/home/vaibhav/Documents/MTech_Labs/ADD/alu7/alu7.srcs/sources_1/new/instr_memory.v,1775646141,verilog,,/home/vaibhav/Documents/MTech_Labs/ADD/alu7/alu7.srcs/sources_1/new/memory.v,,instr_memory,,,,,,,,
+/home/vaibhav/Documents/MTech_Labs/ADD/alu7/alu7.srcs/sources_1/new/memory.v,1775646809,verilog,,/home/vaibhav/Documents/MTech_Labs/ADD/alu7/alu7.srcs/sources_1/new/register_file.v,,memory,,,,,,,,
+/home/vaibhav/Documents/MTech_Labs/ADD/alu7/alu7.srcs/sources_1/new/register_file.v,1774606304,verilog,,/home/vaibhav/Documents/MTech_Labs/ADD/alu7/alu7.srcs/sim_1/new/tb_control.v,,register_file,,,,,,,,

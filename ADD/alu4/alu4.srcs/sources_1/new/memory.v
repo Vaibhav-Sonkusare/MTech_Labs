@@ -21,7 +21,7 @@ module memory (
     output     [7:0] read_data
 );
 
-reg [7:0] mem [255:0];
+reg [7:0] mem [255:0];  // 2^8
 
 integer i;
 always @(posedge clk) begin

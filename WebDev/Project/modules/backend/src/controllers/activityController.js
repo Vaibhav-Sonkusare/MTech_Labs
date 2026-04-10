@@ -46,9 +46,9 @@ exports.logActivity = async (req, res) => {
       }
     });
 
-    // 3️⃣ Call AI classification service
+    // 3️⃣ Call AI classification service (with user overrides)
     const { category, confidence } =
-      await aiService.classifyActivity(domain, title);
+      await aiService.classifyWithOverrides(domain, title, req.userId, prisma);
 
     // 4️⃣ Update log with classification
     await prisma.activityLog.update({

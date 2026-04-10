@@ -1,0 +1,10 @@
+Time resolution is 1 ps
+================================================
+  Testbench: iterative sum_n
+  sum(N) = 1 + 2 + ... + N
+================================================
+FAIL  N=  1  expected=  1  got=  0  (PC=5)
+================================================
+  Results: 0 passed,  1 failed
+================================================
+$finish called at time : 76 ns : File "/home/vaibhav/Documents/MTech_Labs/ADD/alu6/alu6.srcs/sim_1/new/tb_control.v" Line 162

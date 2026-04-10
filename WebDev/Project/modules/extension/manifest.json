@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "Smart Digital Wellbeing Tracker",
-    "version": "1.0",
+    "version": "1.16",
     "description": "Tracks browsing activity and sends it to the Smart Digital Wellbeing Platform.",
     "permissions": [
         "tabs",
@@ -15,15 +15,27 @@
     ],
     "background": {
         "scripts": [
+            "browser-polyfill.js",
             "background.js"
         ],
         "type": "module",
         "persistent": true
     },
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "browser-polyfill.js",
+                "content.js"
+            ]
+        }
+    ],
     "browser_action": {
         "default_popup": "popup.html"
     },
-    "applications": {
+    "browser_specific_settings": {
         "gecko": {
             "id": "activity-tracker@wellbeing-platform"
         }
