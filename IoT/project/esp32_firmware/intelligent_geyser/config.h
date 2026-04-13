@@ -14,24 +14,19 @@
 #define BASE_TOPIC      "smart_geyser"
 
 // ── Sensor Pins (38-pin ESP32-D0WD-V3 DevKit) ──────────────────────────────
-#define DS18B20_PIN     14      // OneWire data pin for temperature sensor
-#define FLOW_SENSOR_PIN 27      // Interrupt-capable pin for YF-S201
-#define ACS712_PIN      34      // ADC pin for current sensor (input only)
-#define WATER_LEVEL_PIN 25      // Digital input for XKC-Y25
+#define DS18B20_PIN         14      // OneWire data pin for water temperature
+#define DHT22_PIN           4       // DHT22 ambient temp & humidity sensor
+#define FLOW_SENSOR_PIN     27      // Interrupt-capable pin for YF-S201
+#define ACS712_PIN          34      // ADC pin for current sensor (input only)
+#define WATER_LEVEL_HIGH_PIN 25     // XKC-Y25 #1 — placed near top of tank
+#define WATER_LEVEL_LOW_PIN  26     // XKC-Y25 #2 — placed near bottom of tank
 
 // ── Actuator Pins ───────────────────────────────────────────────────────────
 #define RELAY_PIN       32      // Relay/SSR control for heating element
 
-// ── Display (I2C OLED SSD1306) ──────────────────────────────────────────────
-#define OLED_SDA        12
-#define OLED_SCL        13
-#define SCREEN_WIDTH    128
-#define SCREEN_HEIGHT   64
-#define OLED_RESET      -1      // No reset pin
-
 // ── Timing ──────────────────────────────────────────────────────────────────
 #define PUBLISH_INTERVAL_MS   5000    // Send telemetry every 5 seconds
-#define DISPLAY_INTERVAL_MS   1000    // Refresh OLED every 1 second
+#define SENSOR_PRINT_INTERVAL_MS 1000 // Print sensor readings to Serial
 #define FLOW_CALC_INTERVAL_MS 1000    // Calculate flow rate every 1 second
 
 // ── Flow Sensor Calibration ─────────────────────────────────────────────────

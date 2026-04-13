@@ -6,6 +6,9 @@
 //   Phase 2 (DATA):  Reads sensors, publishes telemetry, receives ON/OFF commands.
 //   FALLBACK:        If WiFi/MQTT is lost, relay follows its current physical state (manual mode).
 //
+// Sensors: DS18B20 (water temp), DHT22 (ambient temp+humidity), YF-S201 (flow),
+//          ACS712 (current), 2x XKC-Y25 (water level: HIGH/MEDIUM/LOW)
+//
 // Target Board: ESP32-D0WD-V3 (38-pin DevKit)
 // ============================================================================
 
@@ -14,9 +17,7 @@
 #include <ArduinoJson.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+#include <DHT.h>
 #include "config.h"
 
 // ── Global Objects ──────────────────────────────────────────────────────────
@@ -26,7 +27,7 @@ PubSubClient mqttClient(espClient);
 OneWire oneWire(DS18B20_PIN);
 DallasTemperature tempSensor(&oneWire);
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+DHT dht(DHT22_PIN, DHT22);
 
 // ── State Variables ─────────────────────────────────────────────────────────
 enum DevicePhase { PHASE_INIT, PHASE_DATA };
@@ -40,9 +41,13 @@ String commandTopic = "";
 
 // Sensor readings
 float waterTemp = 0.0;
+float ambientTemp = 0.0;
+float humidity = 0.0;
 float flowRate = 0.0;
 float currentAmps = 0.0;
-bool waterLevelOK = true;
+bool waterLevelHigh = false;   // true if water reaches HIGH sensor
+bool waterLevelLow = false;    // true if water reaches LOW sensor
+String waterLevelStr = "LOW";  // "HIGH", "MEDIUM", or "LOW"
 bool heaterOn = false;
 bool serverConnected = false;
 
@@ -52,9 +57,9 @@ unsigned long lastFlowCalc = 0;
 
 // Timing
 unsigned long lastPublish = 0;
-unsigned long lastDisplayUpdate = 0;
+unsigned long lastSensorPrint = 0;
 unsigned long initSentTime = 0;
-bool initSent = false; 
+bool initSent = false;
 
 // ── Interrupt Service Routine (Flow Sensor) ─────────────────────────────────
 void IRAM_ATTR flowPulseISR() {
@@ -176,6 +181,14 @@ void readTemperature() {
   }
 }
 
+void readDHT22() {
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();  // Celsius
+  // DHT22 returns NaN on read failure
+  if (!isnan(h)) humidity = h;
+  if (!isnan(t)) ambientTemp = t;
+}
+
 void calculateFlowRate() {
   if (millis() - lastFlowCalc >= FLOW_CALC_INTERVAL_MS) {
     noInterrupts();
@@ -198,64 +211,42 @@ void readCurrent() {
 }
 
 void readWaterLevel() {
-  // XKC-Y25: HIGH when liquid is detected
-  waterLevelOK = (digitalRead(WATER_LEVEL_PIN) == HIGH);
+  // Two XKC-Y25 sensors: one near top (HIGH), one near bottom (LOW)
+  // XKC-Y25: HIGH when liquid is detected at that level
+  waterLevelHigh = (digitalRead(WATER_LEVEL_HIGH_PIN) == HIGH);
+  waterLevelLow  = (digitalRead(WATER_LEVEL_LOW_PIN) == HIGH);
+
+  // Determine water level string:
+  //   Both detect water → HIGH
+  //   Only LOW detects  → MEDIUM (water is above bottom but below top)
+  //   Neither detects   → LOW (tank is nearly empty)
+  if (waterLevelHigh && waterLevelLow) {
+    waterLevelStr = "HIGH";
+  } else if (waterLevelLow) {
+    waterLevelStr = "MEDIUM";
+  } else {
+    waterLevelStr = "LOW";
+  }
 }
 
-// ── Display Update ──────────────────────────────────────────────────────────
-void updateDisplay() {
-  if (millis() - lastDisplayUpdate < DISPLAY_INTERVAL_MS) return;
-  lastDisplayUpdate = millis();
+// ── Print Sensor Readings to Console ────────────────────────────────────────
+void printSensorReadings() {
+  if (millis() - lastSensorPrint < SENSOR_PRINT_INTERVAL_MS) return;
+  lastSensorPrint = millis();
 
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-
-  // --- PRINT TO CONSOLE FOR DEBUGGING ---
   Serial.println("\n--- Sensor Readings ---");
-  Serial.print("Temp:   "); Serial.print(waterTemp, 1); Serial.println(" C");
-  Serial.print("Flow:   "); Serial.print(flowRate, 1); Serial.println(" L/min");
-  Serial.print("Amps:   "); Serial.print(currentAmps, 2); Serial.println(" A");
-  Serial.print("Level:  "); Serial.println(waterLevelOK ? "OK" : "LOW");
-  Serial.print("Heater: "); Serial.println(heaterOn ? "ON" : "OFF");
+  Serial.print("Water Temp:   "); Serial.print(waterTemp, 1);   Serial.println(" C");
+  Serial.print("Ambient Temp: "); Serial.print(ambientTemp, 1); Serial.println(" C");
+  Serial.print("Humidity:     "); Serial.print(humidity, 1);     Serial.println(" %");
+  Serial.print("Flow Rate:    "); Serial.print(flowRate, 1);     Serial.println(" L/min");
+  Serial.print("Current:      "); Serial.print(currentAmps, 2);  Serial.println(" A");
+  Serial.print("Water Level:  "); Serial.println(waterLevelStr);
+  Serial.print("  (High pin="); Serial.print(waterLevelHigh ? "YES" : "NO");
+  Serial.print(", Low pin=");  Serial.print(waterLevelLow ? "YES" : "NO");
+  Serial.println(")");
+  Serial.print("Heater:       "); Serial.println(heaterOn ? "ON" : "OFF");
+  Serial.print("Phase:        "); Serial.println(currentPhase == PHASE_INIT ? "INIT" : "DATA");
   Serial.println("-----------------------");
-  // --------------------------------------
-
-  // Line 1: Status
-  display.setCursor(0, 0);
-  if (currentPhase == PHASE_INIT) {
-    display.println("Initializing...");
-  } else {
-    display.print("Geyser #");
-    display.print(assignedGeyserID);
-    display.print(serverConnected ? " [OK]" : " [OFFLINE]");
-    display.println();
-  }
-
-  // Line 2: Temperature & Flow
-  display.setCursor(0, 16);
-  display.print("Temp: ");
-  display.print(waterTemp, 1);
-  display.println("C");
-
-  display.setCursor(0, 26);
-  display.print("Flow: ");
-  display.print(flowRate, 1);
-  display.println(" L/m");
-
-  // Line 3: Power & Level
-  display.setCursor(0, 36);
-  display.print("I: ");
-  display.print(currentAmps, 2);
-  display.print("A L: ");
-  display.println(waterLevelOK ? "OK" : "LOW");
-
-  // Line 4: Heater
-  display.setCursor(0, 46);
-  display.print("Heater: ");
-  display.println(heaterOn ? "ON" : "OFF");
-
-  display.display();
 }
 
 // ── Publish Telemetry ───────────────────────────────────────────────────────
@@ -264,13 +255,14 @@ void publishData() {
   if (millis() - lastPublish < PUBLISH_INTERVAL_MS) return;
   lastPublish = millis();
 
-  StaticJsonDocument<256> doc;
+  StaticJsonDocument<384> doc;
   doc["geyser_id"] = assignedGeyserID;
   doc["water_temp"] = round(waterTemp * 10) / 10.0;
-  doc["ambient_temp"] = 25.0;  // TODO: Add ambient sensor if available
+  doc["ambient_temp"] = round(ambientTemp * 10) / 10.0;
+  doc["humidity"] = round(humidity * 10) / 10.0;
   doc["flow_rate"] = round(flowRate * 10) / 10.0;
   doc["current_amps"] = round(currentAmps * 100) / 100.0;
-  doc["water_level"] = waterLevelOK ? 100 : 0;
+  doc["water_level"] = waterLevelStr;
   doc["is_heating"] = heaterOn ? 1 : 0;
 
   // Add temporal context for the ML model
@@ -282,15 +274,20 @@ void publishData() {
     doc["day_of_week"] = timeinfo.tm_wday;
   }
 
-  char buffer[256];
+  char buffer[384];
   serializeJson(doc, buffer);
 
   if (mqttClient.publish(dataTopic.c_str(), buffer)) {
     Serial.print("[DATA] Published: T=");
     Serial.print(waterTemp, 1);
-    Serial.print("C, Flow=");
+    Serial.print("C, Amb=");
+    Serial.print(ambientTemp, 1);
+    Serial.print("C, H=");
+    Serial.print(humidity, 1);
+    Serial.print("%, Flow=");
     Serial.print(flowRate, 1);
-    Serial.println(" L/min");
+    Serial.print(", Level=");
+    Serial.println(waterLevelStr);
   }
 }
 
@@ -305,7 +302,7 @@ void sendInitRequest() {
   info["chip_model"] = ESP.getChipModel();
   info["chip_revision"] = ESP.getChipRevision();
   info["cores"] = ESP.getChipCores();
-  info["firmware_version"] = "1.0.0";
+  info["firmware_version"] = "1.1.0";
 
   char buffer[256];
   serializeJson(doc, buffer);
@@ -323,36 +320,33 @@ void sendInitRequest() {
 // ============================================================================
 void setup() {
   Serial.begin(115200);
+  delay(1000);  // Give Serial Monitor time to connect
   Serial.println("\n=== Context-Aware Smart Geyser ===");
-  Serial.println("Firmware v1.0.0");
+  Serial.println("Firmware v1.1.0 (No OLED, DHT22 + Dual Water Level)");
 
   // Pin modes
   pinMode(RELAY_PIN, OUTPUT);
   digitalWrite(RELAY_PIN, LOW);  // Start with heater OFF
-  pinMode(WATER_LEVEL_PIN, INPUT);
+  pinMode(WATER_LEVEL_HIGH_PIN, INPUT);
+  pinMode(WATER_LEVEL_LOW_PIN, INPUT);
   pinMode(FLOW_SENSOR_PIN, INPUT_PULLUP);
 
   // Attach flow sensor interrupt
   attachInterrupt(digitalPinToInterrupt(FLOW_SENSOR_PIN), flowPulseISR, RISING);
 
-  // Initialize temperature sensor
+  // Initialize temperature sensor (DS18B20)
   tempSensor.begin();
-  Serial.println("DS18B20 initialized.");
+  Serial.println("[OK] DS18B20 initialized.");
 
-  // Initialize OLED display (Try 0x3C, then fallback to 0x3D)
-  Wire.begin(OLED_SDA, OLED_SCL);
-  if (display.begin(SSD1306_SWITCHCAPVCC, 0x3C) || display.begin(SSD1306_SWITCHCAPVCC, 0x3D)) {
-    Serial.println("OLED initialized successfully.");
-    display.clearDisplay();
-    display.setTextSize(1);
-    display.setTextColor(SSD1306_WHITE);
-    display.setCursor(0, 20);
-    display.println("Smart Geyser v1.0");
-    display.println("Booting...");
-    display.display();
-  } else {
-    Serial.println("OLED init FAILED! Check wiring (SDA=12, SCL=13) and address.");
-  }
+  // Initialize DHT22
+  dht.begin();
+  Serial.println("[OK] DHT22 initialized.");
+
+  Serial.println("[OK] Water level sensors (HIGH pin=" + String(WATER_LEVEL_HIGH_PIN) +
+                 ", LOW pin=" + String(WATER_LEVEL_LOW_PIN) + ")");
+  Serial.println("[OK] Flow sensor on pin " + String(FLOW_SENSOR_PIN));
+  Serial.println("[OK] Current sensor on pin " + String(ACS712_PIN));
+  Serial.println("[OK] Relay on pin " + String(RELAY_PIN));
 
   // Connect WiFi
   connectWiFi();
@@ -364,7 +358,8 @@ void setup() {
 
   // Sync time via NTP (for temporal features)
   configTime(19800, 0, "pool.ntp.org", "time.nist.gov"); // IST = UTC+5:30 = 19800s
-  Serial.println("NTP time sync initiated.");
+  Serial.println("[OK] NTP time sync initiated.");
+  Serial.println("=====================================\n");
 }
 
 // ============================================================================
@@ -375,7 +370,7 @@ void loop() {
   if (WiFi.status() != WL_CONNECTED) {
     serverConnected = false;
     // MANUAL MODE: Relay stays in whatever state it's in
-    updateDisplay();
+    printSensorReadings();
     delay(1000);
     connectWiFi(); // Try to reconnect
     return;
@@ -392,6 +387,7 @@ void loop() {
 
   // ── Read sensors (always, regardless of phase) ──────────────────────────
   readTemperature();
+  readDHT22();
   calculateFlowRate();
   readCurrent();
   readWaterLevel();
@@ -407,6 +403,6 @@ void loop() {
       break;
   }
 
-  // ── Update display ──────────────────────────────────────────────────────
-  updateDisplay();
+  // ── Print to console ──────────────────────────────────────────────────
+  printSensorReadings();
 }
