@@ -5,8 +5,8 @@
 #define CONFIG_H
 
 // ── WiFi Credentials ────────────────────────────────────────────────────────
-#define WIFI_SSID       "YOUR_WIFI_SSID"
-#define WIFI_PASSWORD   "YOUR_WIFI_PASSWORD"
+#define WIFI_SSID       "RSL_2"
+#define WIFI_PASSWORD   "Rsl2@1234"
 
 // ── MQTT Broker ─────────────────────────────────────────────────────────────
 #define MQTT_BROKER     "broker.hivemq.com"
@@ -14,7 +14,7 @@
 #define BASE_TOPIC      "smart_geyser"
 
 // ── Sensor Pins (38-pin ESP32-D0WD-V3 DevKit) ──────────────────────────────
-#define DS18B20_PIN     4       // OneWire data pin for temperature sensor
+#define DS18B20_PIN     14      // OneWire data pin for temperature sensor
 #define FLOW_SENSOR_PIN 27      // Interrupt-capable pin for YF-S201
 #define ACS712_PIN      34      // ADC pin for current sensor (input only)
 #define WATER_LEVEL_PIN 25      // Digital input for XKC-Y25
@@ -23,8 +23,8 @@
 #define RELAY_PIN       32      // Relay/SSR control for heating element
 
 // ── Display (I2C OLED SSD1306) ──────────────────────────────────────────────
-#define OLED_SDA        21
-#define OLED_SCL        22
+#define OLED_SDA        12
+#define OLED_SCL        13
 #define SCREEN_WIDTH    128
 #define SCREEN_HEIGHT   64
 #define OLED_RESET      -1      // No reset pin

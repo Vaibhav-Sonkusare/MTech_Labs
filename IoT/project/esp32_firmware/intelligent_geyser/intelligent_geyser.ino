@@ -32,7 +32,8 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 enum DevicePhase { PHASE_INIT, PHASE_DATA };
 DevicePhase currentPhase = PHASE_INIT;
 
-String deviceMAC = "";
+String deviceMAC_clean = "";
+String deviceMAC_colon = "";
 int assignedGeyserID = -1;
 String dataTopic = "";
 String commandTopic = "";
@@ -53,7 +54,7 @@ unsigned long lastFlowCalc = 0;
 unsigned long lastPublish = 0;
 unsigned long lastDisplayUpdate = 0;
 unsigned long initSentTime = 0;
-bool initSent = false;
+bool initSent = false; 
 
 // ── Interrupt Service Routine (Flow Sensor) ─────────────────────────────────
 void IRAM_ATTR flowPulseISR() {
@@ -72,9 +73,10 @@ void connectWiFi() {
   }
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("\nWiFi connected! IP: " + WiFi.localIP().toString());
-    deviceMAC = WiFi.macAddress();
-    deviceMAC.replace(":", "");  // Remove colons for topic compatibility
-    Serial.println("MAC: " + WiFi.macAddress());
+    deviceMAC_colon = WiFi.macAddress();
+    deviceMAC_clean = deviceMAC_colon;
+    deviceMAC_clean.replace(":", "");
+    Serial.println("MAC: " + deviceMAC_colon);
   } else {
     Serial.println("\nWiFi connection FAILED. Entering manual mode.");
   }
@@ -95,7 +97,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
   // ── Handle config response during INIT phase ───────────────────────────
   if (currentPhase == PHASE_INIT) {
-    String expectedConfigTopic = String(BASE_TOPIC) + "/config/" + WiFi.macAddress();
+    String expectedConfigTopic = String(BASE_TOPIC) + "/config/" + deviceMAC_colon;
     if (topicStr == expectedConfigTopic) {
       assignedGeyserID = doc["geyser_id"] | -1;
       const char* dt = doc["data_topic"] | "";
@@ -137,7 +139,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 void connectMQTT() {
   if (mqttClient.connected()) return;
 
-  String clientId = "geyser_" + deviceMAC;
+  String clientId = "geyser_" + deviceMAC_clean;
   Serial.print("Connecting to MQTT...");
 
   if (mqttClient.connect(clientId.c_str())) {
@@ -145,7 +147,7 @@ void connectMQTT() {
 
     if (currentPhase == PHASE_INIT) {
       // Subscribe to our config channel
-      String configTopic = String(BASE_TOPIC) + "/config/" + WiFi.macAddress();
+      String configTopic = String(BASE_TOPIC) + "/config/" + deviceMAC_colon;
       mqttClient.subscribe(configTopic.c_str());
       Serial.println("Subscribed to: " + configTopic);
     } else if (currentPhase == PHASE_DATA && commandTopic.length() > 0) {
@@ -209,6 +211,16 @@ void updateDisplay() {
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
 
+  // --- PRINT TO CONSOLE FOR DEBUGGING ---
+  Serial.println("\n--- Sensor Readings ---");
+  Serial.print("Temp:   "); Serial.print(waterTemp, 1); Serial.println(" C");
+  Serial.print("Flow:   "); Serial.print(flowRate, 1); Serial.println(" L/min");
+  Serial.print("Amps:   "); Serial.print(currentAmps, 2); Serial.println(" A");
+  Serial.print("Level:  "); Serial.println(waterLevelOK ? "OK" : "LOW");
+  Serial.print("Heater: "); Serial.println(heaterOn ? "ON" : "OFF");
+  Serial.println("-----------------------");
+  // --------------------------------------
+
   // Line 1: Status
   display.setCursor(0, 0);
   if (currentPhase == PHASE_INIT) {
@@ -220,27 +232,28 @@ void updateDisplay() {
     display.println();
   }
 
-  // Line 2: Temperature
+  // Line 2: Temperature & Flow
   display.setCursor(0, 16);
   display.print("Temp: ");
   display.print(waterTemp, 1);
-  display.println(" C");
+  display.println("C");
 
-  // Line 3: Flow
-  display.setCursor(0, 28);
+  display.setCursor(0, 26);
   display.print("Flow: ");
   display.print(flowRate, 1);
-  display.println(" L/min");
+  display.println(" L/m");
+
+  // Line 3: Power & Level
+  display.setCursor(0, 36);
+  display.print("I: ");
+  display.print(currentAmps, 2);
+  display.print("A L: ");
+  display.println(waterLevelOK ? "OK" : "LOW");
 
   // Line 4: Heater
-  display.setCursor(0, 40);
+  display.setCursor(0, 46);
   display.print("Heater: ");
   display.println(heaterOn ? "ON" : "OFF");
-
-  // Line 5: Water level
-  display.setCursor(0, 52);
-  display.print("Level: ");
-  display.println(waterLevelOK ? "OK" : "LOW!");
 
   display.display();
 }
@@ -286,7 +299,7 @@ void sendInitRequest() {
   if (initSent && (millis() - initSentTime < 10000)) return; // Wait 10s between retries
 
   StaticJsonDocument<256> doc;
-  doc["mac_address"] = WiFi.macAddress();
+  doc["mac_address"] = deviceMAC_colon;
 
   JsonObject info = doc.createNestedObject("info");
   info["chip_model"] = ESP.getChipModel();
@@ -326,10 +339,10 @@ void setup() {
   tempSensor.begin();
   Serial.println("DS18B20 initialized.");
 
-  // Initialize OLED display
+  // Initialize OLED display (Try 0x3C, then fallback to 0x3D)
   Wire.begin(OLED_SDA, OLED_SCL);
-  if (display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println("OLED initialized.");
+  if (display.begin(SSD1306_SWITCHCAPVCC, 0x3C) || display.begin(SSD1306_SWITCHCAPVCC, 0x3D)) {
+    Serial.println("OLED initialized successfully.");
     display.clearDisplay();
     display.setTextSize(1);
     display.setTextColor(SSD1306_WHITE);
@@ -338,7 +351,7 @@ void setup() {
     display.println("Booting...");
     display.display();
   } else {
-    Serial.println("OLED init FAILED (display will be disabled).");
+    Serial.println("OLED init FAILED! Check wiring (SDA=12, SCL=13) and address.");
   }
 
   // Connect WiFi
