@@ -8,6 +8,7 @@
 //
 // Sensors: DS18B20 (water temp), DHT22 (ambient temp+humidity), YF-S201 (flow),
 //          ACS712 (current), 2x XKC-Y25 (water level: HIGH/MEDIUM/LOW)
+// Display: SH1106 128x64 OLED via U8g2 (I2C on GPIO 32/33)
 //
 // Target Board: ESP32-D0WD-V3 (38-pin DevKit)
 // ============================================================================
@@ -18,6 +19,8 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <DHT.h>
+#include <U8g2lib.h>
+#include <Wire.h>
 #include "config.h"
 
 // ── Global Objects ──────────────────────────────────────────────────────────
@@ -28,6 +31,9 @@ OneWire oneWire(DS18B20_PIN);
 DallasTemperature tempSensor(&oneWire);
 
 DHT dht(DHT22_PIN, DHT22);
+
+// SH1106 OLED display (matching working test code)
+U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
 // ── State Variables ─────────────────────────────────────────────────────────
 enum DevicePhase { PHASE_INIT, PHASE_DATA };
@@ -45,11 +51,12 @@ float ambientTemp = 0.0;
 float humidity = 0.0;
 float flowRate = 0.0;
 float currentAmps = 0.0;
-bool waterLevelHigh = false;   // true if water reaches HIGH sensor
-bool waterLevelLow = false;    // true if water reaches LOW sensor
-String waterLevelStr = "LOW";  // "HIGH", "MEDIUM", or "LOW"
+bool waterLevelHigh = false;
+bool waterLevelLow = false;
+String waterLevelStr = "LOW";
 bool heaterOn = false;
 bool serverConnected = false;
+bool oledAvailable = false;
 
 // Flow sensor interrupt
 volatile unsigned long pulseCount = 0;
@@ -58,6 +65,7 @@ unsigned long lastFlowCalc = 0;
 // Timing
 unsigned long lastPublish = 0;
 unsigned long lastSensorPrint = 0;
+unsigned long lastDisplayUpdate = 0;
 unsigned long initSentTime = 0;
 bool initSent = false;
 
@@ -89,7 +97,6 @@ void connectWiFi() {
 
 // ── MQTT Callback ───────────────────────────────────────────────────────────
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
-  // Parse incoming JSON
   StaticJsonDocument<512> doc;
   DeserializationError err = deserializeJson(doc, payload, length);
   if (err) {
@@ -115,7 +122,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       Serial.println("Data Topic:  " + dataTopic);
       Serial.println("Cmd Topic:   " + commandTopic);
 
-      // Subscribe to our command topic
       mqttClient.subscribe(commandTopic.c_str());
       Serial.println("Subscribed to: " + commandTopic);
 
@@ -151,12 +157,10 @@ void connectMQTT() {
     Serial.println(" connected!");
 
     if (currentPhase == PHASE_INIT) {
-      // Subscribe to our config channel
       String configTopic = String(BASE_TOPIC) + "/config/" + deviceMAC_colon;
       mqttClient.subscribe(configTopic.c_str());
       Serial.println("Subscribed to: " + configTopic);
     } else if (currentPhase == PHASE_DATA && commandTopic.length() > 0) {
-      // Re-subscribe to command topic after reconnect
       mqttClient.subscribe(commandTopic.c_str());
     }
   } else {
@@ -173,7 +177,6 @@ void readTemperature() {
   if (t != DEVICE_DISCONNECTED_C && t > TEMP_SAFETY_MIN && t < TEMP_SAFETY_MAX) {
     waterTemp = t;
   }
-  // Emergency shutoff
   if (waterTemp >= TEMP_SAFETY_MAX) {
     heaterOn = false;
     digitalWrite(RELAY_PIN, LOW);
@@ -183,8 +186,7 @@ void readTemperature() {
 
 void readDHT22() {
   float h = dht.readHumidity();
-  float t = dht.readTemperature();  // Celsius
-  // DHT22 returns NaN on read failure
+  float t = dht.readTemperature();
   if (!isnan(h)) humidity = h;
   if (!isnan(t)) ambientTemp = t;
 }
@@ -195,8 +197,6 @@ void calculateFlowRate() {
     unsigned long count = pulseCount;
     pulseCount = 0;
     interrupts();
-
-    // Flow rate in L/min
     flowRate = (count / FLOW_CALIBRATION_FACTOR);
     lastFlowCalc = millis();
   }
@@ -205,21 +205,14 @@ void calculateFlowRate() {
 void readCurrent() {
   int rawADC = analogRead(ACS712_PIN);
   float voltage = rawADC * ADC_TO_VOLTAGE;
-  // Current = (voltage - zero point voltage) / sensitivity
   float zeroVoltage = ACS712_ZERO_POINT * ADC_TO_VOLTAGE;
   currentAmps = abs((voltage - zeroVoltage) / ACS712_SENSITIVITY);
 }
 
 void readWaterLevel() {
-  // Two XKC-Y25 sensors: one near top (HIGH), one near bottom (LOW)
-  // XKC-Y25: HIGH when liquid is detected at that level
   waterLevelHigh = (digitalRead(WATER_LEVEL_HIGH_PIN) == HIGH);
   waterLevelLow  = (digitalRead(WATER_LEVEL_LOW_PIN) == HIGH);
 
-  // Determine water level string:
-  //   Both detect water → HIGH
-  //   Only LOW detects  → MEDIUM (water is above bottom but below top)
-  //   Neither detects   → LOW (tank is nearly empty)
   if (waterLevelHigh && waterLevelLow) {
     waterLevelStr = "HIGH";
   } else if (waterLevelLow) {
@@ -227,6 +220,69 @@ void readWaterLevel() {
   } else {
     waterLevelStr = "LOW";
   }
+}
+
+// ── OLED Display Update ─────────────────────────────────────────────────────
+void updateDisplay() {
+  if (!oledAvailable) return;
+  if (millis() - lastDisplayUpdate < DISPLAY_INTERVAL_MS) return;
+  lastDisplayUpdate = millis();
+
+  char buf[32];  // Temp buffer for formatting strings
+
+  u8g2.clearBuffer();
+
+  // ── Row 1: Status bar (bold) ──────────────────────────────────────────
+  u8g2.setFont(u8g2_font_6x10_tf);
+  if (currentPhase == PHASE_INIT) {
+    u8g2.drawStr(0, 10, "INIT... Waiting");
+  } else {
+    snprintf(buf, sizeof(buf), "Geyser #%d  %s", assignedGeyserID,
+             serverConnected ? "[OK]" : "[OFF]");
+    u8g2.drawStr(0, 10, buf);
+  }
+
+  // Horizontal separator
+  u8g2.drawHLine(0, 12, 128);
+
+  // ── Row 2: Water Temp & Ambient Temp ──────────────────────────────────
+  u8g2.setFont(u8g2_font_5x8_tf);
+
+  snprintf(buf, sizeof(buf), "Wtr:%s%dC", waterTemp < 100 ? " " : "", (int)waterTemp);
+  u8g2.drawStr(0, 23, buf);
+  snprintf(buf, sizeof(buf), "Amb:%s%dC", ambientTemp < 100 ? " " : "", (int)ambientTemp);
+  u8g2.drawStr(68, 23, buf);
+
+  // ── Row 3: Humidity & Flow ────────────────────────────────────────────
+  snprintf(buf, sizeof(buf), "Hum: %d%%", (int)humidity);
+  u8g2.drawStr(0, 33, buf);
+  // Format flow with 1 decimal
+  int flowWhole = (int)flowRate;
+  int flowFrac = (int)((flowRate - flowWhole) * 10);
+  snprintf(buf, sizeof(buf), "Flw: %d.%dL/m", flowWhole, flowFrac);
+  u8g2.drawStr(68, 33, buf);
+
+  // ── Row 4: Current & Water Level ──────────────────────────────────────
+  int ampsWhole = (int)currentAmps;
+  int ampsFrac = (int)((currentAmps - ampsWhole) * 100);
+  snprintf(buf, sizeof(buf), "Cur: %d.%02dA", ampsWhole, ampsFrac);
+  u8g2.drawStr(0, 43, buf);
+  snprintf(buf, sizeof(buf), "Lvl: %s", waterLevelStr.c_str());
+  u8g2.drawStr(68, 43, buf);
+
+  // Horizontal separator
+  u8g2.drawHLine(0, 46, 128);
+
+  // ── Row 5: Heater status (prominent) ──────────────────────────────────
+  u8g2.setFont(u8g2_font_6x10_tf);
+  snprintf(buf, sizeof(buf), "HEATER: %s", heaterOn ? "ON" : "OFF");
+  u8g2.drawStr(0, 58, buf);
+
+  // WiFi indicator on the right
+  u8g2.setFont(u8g2_font_5x8_tf);
+  u8g2.drawStr(90, 58, WiFi.status() == WL_CONNECTED ? "WiFi:OK" : "WiFi:--");
+
+  u8g2.sendBuffer();
 }
 
 // ── Print Sensor Readings to Console ────────────────────────────────────────
@@ -265,7 +321,6 @@ void publishData() {
   doc["water_level"] = waterLevelStr;
   doc["is_heating"] = heaterOn ? 1 : 0;
 
-  // Add temporal context for the ML model
   struct tm timeinfo;
   if (getLocalTime(&timeinfo)) {
     doc["hour"] = timeinfo.tm_hour;
@@ -293,7 +348,7 @@ void publishData() {
 
 // ── Init Phase: Send Registration ───────────────────────────────────────────
 void sendInitRequest() {
-  if (initSent && (millis() - initSentTime < 10000)) return; // Wait 10s between retries
+  if (initSent && (millis() - initSentTime < 10000)) return;
 
   StaticJsonDocument<256> doc;
   doc["mac_address"] = deviceMAC_colon;
@@ -302,7 +357,7 @@ void sendInitRequest() {
   info["chip_model"] = ESP.getChipModel();
   info["chip_revision"] = ESP.getChipRevision();
   info["cores"] = ESP.getChipCores();
-  info["firmware_version"] = "1.1.0";
+  info["firmware_version"] = "1.2.0";
 
   char buffer[256];
   serializeJson(doc, buffer);
@@ -320,13 +375,13 @@ void sendInitRequest() {
 // ============================================================================
 void setup() {
   Serial.begin(115200);
-  delay(1000);  // Give Serial Monitor time to connect
+  delay(1000);
   Serial.println("\n=== Context-Aware Smart Geyser ===");
-  Serial.println("Firmware v1.1.0 (No OLED, DHT22 + Dual Water Level)");
+  Serial.println("Firmware v1.2.0 (SH1106 OLED + DHT22 + Dual Water Level)");
 
   // Pin modes
   pinMode(RELAY_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, LOW);  // Start with heater OFF
+  digitalWrite(RELAY_PIN, LOW);
   pinMode(WATER_LEVEL_HIGH_PIN, INPUT);
   pinMode(WATER_LEVEL_LOW_PIN, INPUT);
   pinMode(FLOW_SENSOR_PIN, INPUT_PULLUP);
@@ -334,7 +389,7 @@ void setup() {
   // Attach flow sensor interrupt
   attachInterrupt(digitalPinToInterrupt(FLOW_SENSOR_PIN), flowPulseISR, RISING);
 
-  // Initialize temperature sensor (DS18B20)
+  // Initialize DS18B20
   tempSensor.begin();
   Serial.println("[OK] DS18B20 initialized.");
 
@@ -342,11 +397,28 @@ void setup() {
   dht.begin();
   Serial.println("[OK] DHT22 initialized.");
 
-  Serial.println("[OK] Water level sensors (HIGH pin=" + String(WATER_LEVEL_HIGH_PIN) +
-                 ", LOW pin=" + String(WATER_LEVEL_LOW_PIN) + ")");
-  Serial.println("[OK] Flow sensor on pin " + String(FLOW_SENSOR_PIN));
-  Serial.println("[OK] Current sensor on pin " + String(ACS712_PIN));
-  Serial.println("[OK] Relay on pin " + String(RELAY_PIN));
+  // Initialize OLED (SH1106 via U8g2, matching test code)
+  delay(250);  // Give display time to power up
+  Wire.begin(OLED_SDA, OLED_SCL);
+  u8g2.begin();
+  oledAvailable = true;
+  Serial.println("[OK] SH1106 OLED initialized (SDA=" + String(OLED_SDA) +
+                 ", SCL=" + String(OLED_SCL) + ")");
+
+  // Show boot screen
+  u8g2.clearBuffer();
+  u8g2.setFont(u8g2_font_6x10_tf);
+  u8g2.drawStr(10, 20, "Smart Geyser");
+  u8g2.drawStr(10, 35, "v1.2.0");
+  u8g2.setFont(u8g2_font_5x8_tf);
+  u8g2.drawStr(10, 50, "Booting...");
+  u8g2.sendBuffer();
+
+  Serial.println("[OK] Sensors: Water Level HIGH=" + String(WATER_LEVEL_HIGH_PIN) +
+                 ", LOW=" + String(WATER_LEVEL_LOW_PIN));
+  Serial.println("[OK] Flow sensor pin " + String(FLOW_SENSOR_PIN));
+  Serial.println("[OK] Current sensor pin " + String(ACS712_PIN));
+  Serial.println("[OK] Relay pin " + String(RELAY_PIN));
 
   // Connect WiFi
   connectWiFi();
@@ -356,8 +428,8 @@ void setup() {
   mqttClient.setCallback(mqttCallback);
   mqttClient.setBufferSize(512);
 
-  // Sync time via NTP (for temporal features)
-  configTime(19800, 0, "pool.ntp.org", "time.nist.gov"); // IST = UTC+5:30 = 19800s
+  // Sync time via NTP
+  configTime(19800, 0, "pool.ntp.org", "time.nist.gov");
   Serial.println("[OK] NTP time sync initiated.");
   Serial.println("=====================================\n");
 }
@@ -366,13 +438,22 @@ void setup() {
 // LOOP
 // ============================================================================
 void loop() {
+  // ── ALWAYS read sensors first, regardless of connectivity ───────────────
+  readTemperature();
+  readDHT22();
+  calculateFlowRate();
+  readCurrent();
+  readWaterLevel();
+
+  // ── ALWAYS update display and console ───────────────────────────────────
+  updateDisplay();
+  printSensorReadings();
+
   // ── WiFi check ──────────────────────────────────────────────────────────
   if (WiFi.status() != WL_CONNECTED) {
     serverConnected = false;
-    // MANUAL MODE: Relay stays in whatever state it's in
-    printSensorReadings();
     delay(1000);
-    connectWiFi(); // Try to reconnect
+    connectWiFi();
     return;
   }
 
@@ -385,24 +466,14 @@ void loop() {
   }
   mqttClient.loop();
 
-  // ── Read sensors (always, regardless of phase) ──────────────────────────
-  readTemperature();
-  readDHT22();
-  calculateFlowRate();
-  readCurrent();
-  readWaterLevel();
-
   // ── Phase-specific logic ────────────────────────────────────────────────
   switch (currentPhase) {
     case PHASE_INIT:
       sendInitRequest();
       break;
-
     case PHASE_DATA:
       publishData();
       break;
   }
-
-  // ── Print to console ──────────────────────────────────────────────────
-  printSensorReadings();
 }
+
