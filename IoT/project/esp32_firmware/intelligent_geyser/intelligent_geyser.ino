@@ -77,6 +77,9 @@ void IRAM_ATTR flowPulseISR() {
 // ── WiFi Connection ─────────────────────────────────────────────────────────
 void connectWiFi() {
   Serial.print("Connecting to WiFi");
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  delay(100);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   int attempts = 0;
   while (WiFi.status() != WL_CONNECTED && attempts < 30) {
@@ -203,10 +206,40 @@ void calculateFlowRate() {
 }
 
 void readCurrent() {
-  int rawADC = analogRead(ACS712_PIN);
-  float voltage = rawADC * ADC_TO_VOLTAGE;
-  float zeroVoltage = ACS712_ZERO_POINT * ADC_TO_VOLTAGE;
-  currentAmps = abs((voltage - zeroVoltage) / ACS712_SENSITIVITY);
+  int minADC = 4095;
+  int maxADC = 0;
+  
+  // Sample the AC wave for 50ms (covers ~2.5 full 50Hz cycles)
+  uint32_t start_time = millis();
+  while((millis() - start_time) < 50) { 
+    int rawADC = analogRead(ACS712_PIN);
+    if (rawADC < minADC) minADC = rawADC;
+    if (rawADC > maxADC) maxADC = rawADC;
+  }
+  
+  // Calculate Peak-to-Peak ADC
+  int peakToPeakADC = maxADC - minADC;
+
+  // Convert to Peak Voltage
+  float voltagePeak = (peakToPeakADC / 2.0) * ADC_TO_VOLTAGE;
+
+  // Calculate RMS Voltage (Vrms = Vpeak * 0.707)
+  float voltageRMS = voltagePeak * 0.707;
+
+  // Calculate RMS Current
+  currentAmps = voltageRMS / ACS712_SENSITIVITY;
+
+  // ── Noise Floor Cutoff ──
+  // The ACS712 on a breadboard picks up heavy ambient electromagnetic noise,
+  // causing it to read 0.5A - 0.75A even when the load is completely disconnected.
+  // Since a real geyser draws massive current (9 Amps to 15 Amps), we can safely
+  // snap any reading below 0.85A down to 0.00A to eliminate "phantom" readings.
+  if(currentAmps < 0.85) {
+    currentAmps = 0.0;
+  } else {
+    // Optional: Subtract the base noise floor so the reported current is more accurate
+    // currentAmps = currentAmps - 0.71; 
+  }
 }
 
 void readWaterLevel() {

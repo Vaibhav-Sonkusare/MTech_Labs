@@ -5,7 +5,11 @@ import pandas as pd
 import numpy as np
 import os
 from collections import deque
+from datetime import datetime
 from utils import MODELS_DIR, BASE_DIR
+
+# Global simulation state
+demo_time_override = None
 
 # ==============================================================================
 # Configuration
@@ -75,19 +79,30 @@ geyser_state = {}
 
 def get_engineered_features(gid, data):
     """Compute real-time features from incoming sensor data."""
+    global demo_time_override
+    
+    w_temp = data.get('water_temperature', data.get('water_temp', 25))
+    flow = data.get('water_flow_speed', data.get('flow_rate', 0))
+    a_temp = data.get('ambient_temperature', data.get('ambient_temp', 25))
+    
     if gid not in geyser_state:
         geyser_state[gid] = {
             'flow_history': deque([0]*60, maxlen=60),
-            'temp_history': deque([data.get('water_temp', 25)]*60, maxlen=60)
+            'temp_history': deque([w_temp]*60, maxlen=60)
         }
         
     state = geyser_state[gid]
-    state['flow_history'].append(data.get('flow_rate', 0))
-    state['temp_history'].append(data.get('water_temp', 25))
+    state['flow_history'].append(flow)
+    state['temp_history'].append(w_temp)
     
-    hr = data.get('hour', 0)
-    month = data.get('month', 1)
-    day = data.get('day_of_week', 0)
+    if demo_time_override:
+        curr_time = demo_time_override
+    else:
+        curr_time = datetime.now()
+        
+    hr = data.get('hour', curr_time.hour)
+    month = data.get('month', curr_time.month)
+    day = data.get('day_of_week', curr_time.weekday())
     
     features = {
         'hour_sin': np.sin(2 * np.pi * hr/24),
@@ -99,8 +114,8 @@ def get_engineered_features(gid, data):
         'is_weekend': int(day >= 5),
         'is_peak_morning': int(6 <= hr <= 9),
         'is_peak_evening': int(18 <= hr <= 21),
-        'ambient_temp': data.get('ambient_temp', 25),
-        'water_temp': data.get('water_temp', 25),
+        'ambient_temp': a_temp,
+        'water_temp': w_temp,
         'water_temp_lag_15m': list(state['temp_history'])[-15],
         'water_temp_lag_1h': state['temp_history'][0],
         'flow_rolling_mean_15m': np.mean(list(state['flow_history'])[-15:]),
@@ -123,7 +138,9 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe(f"{BASE_TOPIC}/delete")
     # Subscribe to data from all registered geysers
     client.subscribe(f"{BASE_TOPIC}/geyser/+/data")
-    print(f"Subscribed to: {BASE_TOPIC}/init, {BASE_TOPIC}/delete, {BASE_TOPIC}/geyser/+/data")
+    # Subscribe to demo time override
+    client.subscribe(f"{BASE_TOPIC}/demo/set_time")
+    print(f"Subscribed to: {BASE_TOPIC}/init, {BASE_TOPIC}/delete, {BASE_TOPIC}/geyser/+/data, {BASE_TOPIC}/demo/set_time")
 
 def on_message(client, userdata, msg):
     global registry
@@ -174,25 +191,55 @@ def on_message(client, userdata, msg):
                 }))
             return
         
+        # ── DEMO OVERRIDE ─────────────────────────────
+        if topic == f"{BASE_TOPIC}/demo/set_time":
+            time_str = payload.get("time")
+            global demo_time_override
+            if time_str:
+                try:
+                    demo_time_override = datetime.fromisoformat(time_str)
+                    print(f"[DEMO] Time overridden to {demo_time_override}")
+                except Exception as e:
+                    print(f"[DEMO] Invalid time format: {e}")
+            else:
+                demo_time_override = None
+                print(f"[DEMO] Time override cleared. Returning to real time.")
+            return
+
         # ── DATA PHASE: Normal operation ─────────────────────────────
         topic_parts = topic.split('/')
         if len(topic_parts) >= 3 and topic_parts[-1] == 'data':
             gid = topic_parts[-2]
-            print(f"[{gid}] Received: T={payload.get('water_temp')}C, Flow={payload.get('flow_rate')}")
+            
+            # Map new payload structure
+            w_temp = payload.get('water_temperature', payload.get('water_temp', 25))
+            flow = payload.get('water_flow_speed', payload.get('flow_rate', 0))
+            a_temp = payload.get('ambient_temperature', payload.get('ambient_temp', 25))
+            hum = payload.get('humidity', 50)
+            level = payload.get('water_level', 'HIGH')
+            
+            # Add these specific variables back into payload for the feature engineering just in case
+            payload['water_temp'] = w_temp
+            payload['flow_rate'] = flow
+            payload['ambient_temp'] = a_temp
+
+            print(f"[{gid}] Received: T={w_temp}C, Flow={flow}, AmbTemp={a_temp}C, Hum={hum}%, Level={level}")
             
             if xgb_model:
                 features_df = get_engineered_features(gid, payload)
                 prediction = int(xgb_model.predict(features_df)[0])
                 confidence = float(xgb_model.predict_proba(features_df)[0][1])
                 
-                # Safety logic
-                w_temp = payload.get('water_temp', 25)
+                # Safety & Control logic
                 command = "OFF"
-                if w_temp < 40:
+                if str(level).upper() == 'LOW' or level == 0:
+                    command = "OFF"
+                    print(f"[{gid}] ⚠️ SAFETY CUTOFF ⚠️: Water level is LOW!")
+                elif w_temp < 40:
                     command = "ON"
                 elif w_temp > 75:
                     command = "OFF"
-                elif prediction == 1 or payload.get('flow_rate', 0) > 0:
+                elif prediction == 1 or flow > 0:
                     command = "ON"
                 
                 resp = {

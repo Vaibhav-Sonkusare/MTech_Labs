@@ -5,8 +5,8 @@
 #define CONFIG_H
 
 // ── WiFi Credentials ────────────────────────────────────────────────────────
-#define WIFI_SSID       "RSL_2"
-#define WIFI_PASSWORD   "Rsl2@1234"
+#define WIFI_SSID       "mtech_123"
+#define WIFI_PASSWORD   "12345678"
 
 // ── MQTT Broker ─────────────────────────────────────────────────────────────
 #define MQTT_BROKER     "broker.hivemq.com"
@@ -22,7 +22,7 @@
 #define WATER_LEVEL_LOW_PIN  26      // XKC-Y25 #2 — placed near bottom of tank
 
 // ── Actuator Pins ───────────────────────────────────────────────────────────
-#define RELAY_PIN       15      // Relay/SSR control for heating element
+#define RELAY_PIN       23      // Relay/SSR control for heating element
 
 // ── Display (I2C OLED SH1106 128x64 via U8g2) ──────────────────────────────
 #define OLED_SDA        32
@@ -41,7 +41,7 @@
 // ── ACS712 Calibration (5A module) ──────────────────────────────────────────
 // At 0A, output is Vcc/2 (~2.5V). Sensitivity: 185mV/A for 5A module.
 // ESP32 ADC: 12-bit (0-4095), 0-3.3V range.
-#define ACS712_ZERO_POINT   2048     // ADC value at 0 Amps (~1.65V for 3.3V ref)
+#define ACS712_ZERO_POINT   3102     // ADC value at 0 Amps (~2.5V) for 5V powered ACS712
 #define ACS712_SENSITIVITY  0.185    // V/A for 5A module
 #define ADC_TO_VOLTAGE      (3.3 / 4095.0)
 
