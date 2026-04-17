@@ -1,0 +1,5 @@
+1. Compare existing 'Smart Geyser' project with our 'Smart Water Management System' project.
+2. Send a Notification/message when water level in the tank is 'LOW'.
+3. Show that Heater is off when heater is off, but predicted to be on. Report this as an error.
+4. When we set a request for hot water in 15 minutes, the heater should turn on immediately (except if the water level is "LOW").
+5. When Manual override is set (requesting water or for stoping the heater), show it in the dashboard UI. Also show a timer for how long the override will be active.

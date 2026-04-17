@@ -1,0 +1,193 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        @page {
+            size: A4;
+            margin: 20mm;
+            @bottom-center {
+                content: counter(page);
+                font-family: serif;
+                font-size: 10pt;
+            }
+        }
+        body {
+            font-family: "Times New Roman", Times, serif;
+            line-height: 1.5;
+            color: #000;
+        }
+        /* Title Page CSS */
+        .title-page {
+            text-align: center;
+            page-break-after: always;
+            position: relative;
+            height: 250mm;
+        }
+        .title {
+            margin-top: 40mm;
+            font-size: 20pt;
+            font-weight: bold;
+            line-height: 1.4;
+            text-transform: uppercase;
+        }
+        .subtitle {
+            margin-top: 25mm;
+            font-size: 16pt;
+            font-weight: bold;
+        }
+        .year {
+            font-size: 14pt;
+            margin-top: 5mm;
+        }
+        .logo-container {
+            margin-top: 20mm;
+        }
+        .logo {
+            width: 50mm;
+        }
+        .submitted-by {
+            margin-top: 15mm;
+            font-size: 14pt;
+        }
+        .names {
+            margin-top: 5mm;
+            font-size: 14pt;
+            font-weight: bold;
+            line-height: 1.6;
+        }
+        .names span {
+            font-weight: normal;
+        }
+        .department {
+            position: absolute;
+            bottom: 10mm;
+            width: 100%;
+            font-size: 14pt;
+        }
+        .nit {
+            font-size: 16pt;
+            font-weight: bold;
+            margin-top: 5mm;
+        }
+        
+        /* Content CSS */
+        h1, h2, h3 {
+            color: #000;
+        }
+        h2 {
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+            margin-top: 30px;
+        }
+        h3 {
+            margin-top: 20px;
+        }
+        p, li {
+            font-size: 12pt;
+            text-align: justify;
+        }
+        li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Title Page -->
+    <div class="title-page">
+        <div class="title">MACHINE LEARNING-BASED SMART GEYSER<br>CONTROL SYSTEM FOR ENERGY-EFFICIENT<br>WATER HEATING IN SHARED ENVIRONMENTS</div>
+        
+        <div class="subtitle">Internet of Things - Project Report</div>
+        <div class="year">Academic Year 2025 – 2026</div>
+        
+        <div class="logo-container">
+            <img src="/home/mtech/Documents/206125030/IoT/project/logo.png" class="logo" />
+        </div>
+        
+        <div class="submitted-by">Submitted by</div>
+        <div class="names">
+            Thirilokkiyan K - <span>206125028</span><br>
+            Vaibhav Bhojraj Sonkusare - <span>206125030</span>
+        </div>
+        
+        <div class="department">
+            Department of Computer Science & Engineering
+            <div class="nit">NIT, Trichy</div>
+        </div>
+    </div>
+    
+    <!-- Content Generated from Markdown -->
+    <div class="content">
+        <h2>2. Abstract</h2>
+<p>This project presents the design and implementation of a context-aware smart water geyser system tailored for shared living environments, such as hostels, where unpredictable usage patterns lead to substantial energy wastage. By incorporating IoT sensors—including DS18B20 for temperature, YF-S201 for flow detection, and XKC-Y25 for safe water levels—the system continuously monitors its environment. A cloud-based Random Forest / XGBoost machine learning predictor infers user demand from simulated historical datasets, enabling predictive pre-heating and bypassing the traditional "always ON" paradigm. Real-time controls are made available via an interactive web dashboard, granting direct manual overrides in conjunction with safety priority logic, resulting in significantly enhanced energy efficiency and user convenience.</p>
+<h2>3. Table of Contents</h2>
+<ol>
+<li>Introduction</li>
+<li>System Architecture</li>
+<li>Hardware Design</li>
+<li>Firmware Design (ESP32)</li>
+<li>Machine Learning Model</li>
+<li>Server-Side Intelligence</li>
+<li>Web Dashboard</li>
+<li>Energy Comparison &amp; Results</li>
+<li>Conclusion &amp; Future Work</li>
+<li>Appendix &amp; Code Files</li>
+</ol>
+<h2>4. Introduction</h2>
+<h3>4.1 Problem Statement</h3>
+<p>In hostel bathrooms, multiple high-capacity water geysers (e.g., 25L units) are often kept ON 24/7. Because usage is irregular and highly unpredictable, water is continuously heated and maintained at terminal temperatures even during idle hours, leading to standby heat loss and significant electrical energy wastage.</p>
+<h3>4.2 Motivation &amp; Objectives</h3>
+<p>The motivation is to transition from manual, unmonitored systems to an automated, data-driven approach. The core objectives are:
+- Learn usage patterns to predict hot water demand.
+- Implement demand-driven heating (pre-heating water just prior to expected usage) to eliminate standby loss.
+- Provide a responsive dashboard for seamless manual scheduling and requests.
+- Guarantee system safety under low-water and extreme thermal conditions.</p>
+<h2>5. System Architecture</h2>
+<p>The system consists of four primary integrated layers:
+1. <strong>IoT End-Device (ESP32)</strong>: Collects sensor data, drives the 2000W heating element via an opto-isolated relay, and maintains local fail-safe protocols.
+2. <strong>Communication (MQTT)</strong>: A lightweight messaging broker (<code>broker.hivemq.com</code>) handles asynchronous telemetry published by the device and command routing from the server.
+3. <strong>Intelligence (Python Server)</strong>: Feeds real-time inputs into a pre-trained ML model, manages command logic prioritization (Safety &gt; Overrides &gt; Predictor), and calculates simulation time-travel states.
+4. <strong>Presentation (Web UI)</strong>: A frontend dashboard visualizing real-time telemetry, historical consumption, and interactive manual control spinners.</p>
+<h2>6. Hardware Design</h2>
+<h3>6.1 Components Overview</h3>
+<ul>
+<li><strong>ESP32-D0WD-V3</strong>: Central processing microcontroller.</li>
+<li><strong>DS18B20</strong>: Submersible digital thermometer for water temperature tracking.</li>
+<li><strong>DHT22</strong>: Tracks ambient bathroom temperature and humidity.</li>
+<li><strong>YF-S201</strong>: Measures water flow rate in L/min using Hall-effect interruption pulses.</li>
+<li><strong>ACS712 (5A)</strong>: Measures AC current draw for power consumption profiling (calibrated structurally to ignore &lt;0.85A noise floor).</li>
+<li><strong>XKC-Y25</strong>: Dual non-contact capacitive liquid level sensors identifying HIGH, MEDIUM, and LOW states.</li>
+<li><strong>SH1106 OLED (128x64)</strong>: Diagnostic telemetry visualizer communicating over I2C.</li>
+<li><strong>2000W Relay Module &amp; Immersion Heater</strong>: High voltage circuit actuation.</li>
+</ul>
+<h3>6.2 Safety Design</h3>
+<p>Given the combination of 230V AC power and aqueous environments, stringent safety is implemented. The ESP32 is entirely powered through a low-voltage DC barrier. If the <code>XKC-Y25</code> detects an anomalous <code>LOW</code> water level, the ESP32 internally (and the server externally) instantly drops the relay pin to <code>LOW</code>, disengaging the heating element to preclude dry-firing and fire hazards. An upper thermal limit (e.g., &gt;75°C) initiates an immediate emergency shutoff.</p>
+<h2>7. Firmware Design (ESP32)</h2>
+<p>Written in C++ using the Arduino Core, the firmware logic divides into two robust phases:
+- <strong>Phase 1 (INIT)</strong>: The module establishes WiFi to broadcast a registration request using its MAC address, subsequently receiving designated MQTT communication topics and its specific generic identifier (e.g., <code>Geyser #1</code>).
+- <strong>Phase 2 (DATA)</strong>: Normal continuous loops sampling sensors asynchronously and reporting via JSON format over MQTT every 5 seconds. Flow interrupts count pulses natively without blocking.
+- <strong>Fallback Rule</strong>: In the event of network disruption, the ESP32 suspends server fetching but continues independent operation adhering to its standalone safety cutoff logic.</p>
+<h2>8. Machine Learning Model</h2>
+<h3>8.1 Synthetic Data Generation</h3>
+<p>Supervised intelligence was trained on comprehensive generated CSV historical datasets simulating 365 days across 6 geysers. Demand was stochastically synthesized incorporating weekend habits and morning/evening peak likelihoods.</p>
+<h3>8.2 Model Comparisons</h3>
+<p>Extracted features include time-series encodings (<code>hour_sin</code>, <code>month_cos</code>) and rolling operational metrics (<code>water_temp_lag_15m</code>). Both Random Forest and XGBoost algorithms were evaluated. XGBoost, due to its gradient descent efficiencies through gradient boosted decision trees, provided over 92% evaluation accuracy with excellent precision in avoiding false positive (unnecessary) heating triggers.</p>
+<h2>9. Server-Side Intelligence</h2>
+<p>The backend Python server subscribes to <code>smart_geyser/geyser/+/data</code>. As messages arrive, <code>feature_engineering.py</code> structures incoming fields directly into XGBoost vectors.
+The server routes commands based on strict Priority overriding:
+1. <strong>Priority 1 (Extreme)</strong>: Hardware conditions (Low water, over-temperature) force absolute OFF.
+2. <strong>Priority 2 (User Request)</strong>: Manual stops or timed heating requests supersede algorithms.
+3. <strong>Priority 3 (ML Algorithm)</strong>: If active context matches historical high-demand vectors, preemptively send ON commands.</p>
+<h2>10. Web Dashboard</h2>
+<p>The web dashboard operates entirely through MQTT via WebSockets (<code>script.js</code>). The UI employs a dynamic component system generating interactive "cards" for each connected geyser.
+Notably, an overlay sliding toggle offers a time-spinner selection menu allowing the user to instantiate overrides for variable durations up to 14 days, converting tactile UI actions into parsed JSON limits.</p>
+<h2>11. Energy Comparison &amp; Results</h2>
+<p>Evaluation scripts benchmark three contrasting methodologies over 7 virtual days:
+1. <strong>Traditional System (Always ON)</strong>: Heats continuously to maintain maximum capacity resulting in excessive passive thermal radiation loss.
+2. <strong>Basic Thermostat</strong>: Triggers exclusively between strict boundaries with no future foresight.
+3. <strong>Smart Predictor (Proposed)</strong>: Demonstrates up to ~30-40% reduced energy expenditures by narrowing duty cycles securely positioned prior to anticipated flows.</p>
+<h2>12. Conclusion &amp; Future Work</h2>
+<p>This functional prototype successfully confirms that leveraging historical context directly governs and optimizes energy profiles without sacrificing inhabitant convenience. Moving forward, substituting the basic immersion heater with an industrially insulated reservoir, enabling dynamic multi-geyser load balancing across entire hostel blocks, and incorporating localized Edge AI processing present promising vectors for subsequent scaling.</p>
+    </div>
+</body>
+</html>
