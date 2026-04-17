@@ -5,8 +5,14 @@
 #define CONFIG_H
 
 // ── WiFi Credentials ────────────────────────────────────────────────────────
-#define WIFI_SSID       "mtech_123"
-#define WIFI_PASSWORD   "12345678"
+// #define WIFI_SSID       "RSL_2"
+// #define WIFI_PASSWORD   "Rsl2@1234"
+#define WIFI_SSID       "Android Security Lab01"
+#define WIFI_PASSWORD   "ababababa"
+// #define WIFI_SSID       "POCO M7 5G"
+// #define WIFI_PASSWORD   "thirilo123"
+// #define WIFI_SSID       "mtech_123"
+// #define WIFI_PASSWORD   "12345678"
 
 // ── MQTT Broker ─────────────────────────────────────────────────────────────
 #define MQTT_BROKER     "broker.hivemq.com"
