@@ -304,8 +304,62 @@ body {
     background: var(--accent);
 }
 
+.btn-stop {
+    background: var(--danger);
+}
+
+.btn-request {
+    background: var(--accent);
+}
+
 .btn-cancel {
     background: var(--text-secondary);
     flex-basis: 100%;
     margin-top: 0.5rem;
+}
+
+.btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* Alert Badges */
+.alert-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.alert-badge {
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+    border: 1px solid transparent;
+}
+
+.alert-mains-off {
+    background: rgba(255, 165, 0, 0.1);
+    color: orange;
+    border-color: rgba(255, 165, 0, 0.3);
+}
+
+.alert-low-water {
+    background: rgba(255, 0, 0, 0.1);
+    color: #ff4444;
+    border-color: rgba(255, 0, 0, 0.3);
+}
+
+.override-status {
+    background: rgba(0, 150, 255, 0.1);
+    border: 1px solid rgba(0, 150, 255, 0.3);
+    color: #4da6ff;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    text-align: center;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
 }

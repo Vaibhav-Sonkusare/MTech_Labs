@@ -246,13 +246,14 @@ def on_message(client, userdata, msg):
             a_temp = payload.get('ambient_temperature', payload.get('ambient_temp', 25))
             hum = payload.get('humidity', 50)
             level = payload.get('water_level', 'HIGH')
+            current = payload.get('current_amps', 0)
             
             # Add these specific variables back into payload for the feature engineering just in case
             payload['water_temp'] = w_temp
             payload['flow_rate'] = flow
             payload['ambient_temp'] = a_temp
 
-            print(f"[{gid}] Received: T={w_temp}C, Flow={flow}, AmbTemp={a_temp}C, Hum={hum}%, Level={level}")
+            print(f"[{gid}] Received: T={w_temp}C, Flow={flow}, AmbTemp={a_temp}C, Hum={hum}%, Level={level}, Current={current}A")
             
             if xgb_model:
                 features_df = get_engineered_features(gid, payload)
@@ -266,9 +267,16 @@ def on_message(client, userdata, msg):
                 curr_time = demo_time_override if demo_time_override else datetime.now()
                 override = geyser_overrides[gid]
                 
+                # Check for Mains Off (heater supposed to be ON, ML says ON, but no current)
+                alerts = []
+                override_active = False
+                override_type = None
+                override_remaining_mins = 0.0
+                
                 # Priority 1: Safety
                 if str(level).upper() == 'LOW' or level == 0:
                     command = "OFF"
+                    alerts.append("low_water")
                     print(f"[{gid}] ⚠️ SAFETY CUTOFF: Water level LOW!")
                 elif w_temp > 75:
                     command = "OFF"
@@ -276,9 +284,15 @@ def on_message(client, userdata, msg):
                 elif override['manual_stop_until'] and curr_time < override['manual_stop_until']:
                     command = "OFF"
                     prediction = 0 # Mask ML output for demo
+                    override_active = True
+                    override_type = "stop"
+                    override_remaining_mins = (override['manual_stop_until'] - curr_time).total_seconds() / 60.0
                 # Priority 3: Hot Water Request (Pre-heat 30 mins prior to the requested time)
                 elif override['hot_water_requested_at'] and override['hot_water_requested_at'] >= curr_time:
                     time_until_request = (override['hot_water_requested_at'] - curr_time).total_seconds() / 60.0
+                    override_active = True
+                    override_type = "request"
+                    override_remaining_mins = time_until_request
                     if time_until_request <= 30.0 and w_temp < 60:
                         command = "ON"
                         prediction = 1 # Mask ML output
@@ -298,12 +312,19 @@ def on_message(client, userdata, msg):
                         command = "ON"
                     else:
                         command = "OFF"
-                
+                # Check Mains
+                if prediction == 1 and command == "ON" and current < 1.0:
+                    alerts.append("mains_off")
+
                 resp = {
                     "geyser_id": gid,
                     "command": command,
                     "ml_prediction": prediction,
-                    "confidence": round(confidence, 3)
+                    "confidence": round(confidence, 3),
+                    "alerts": alerts,
+                    "override_active": override_active,
+                    "override_type": override_type,
+                    "override_remaining_mins": round(override_remaining_mins, 1)
                 }
                 client.publish(f"{BASE_TOPIC}/geyser/{gid}/command", json.dumps(resp))
                 client.publish(f"{BASE_TOPIC}/dashboard/inference", json.dumps(resp))

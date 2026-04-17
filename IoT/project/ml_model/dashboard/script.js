@@ -19,7 +19,8 @@ function createGeyserCard(gid, name) {
         flow: 0,
         state: 'OFF',
         name: name || `Geyser ${gid}`,
-        spinners: { d: 0, h: 0, m: 0 }
+        spinners: { d: 0, h: 0, m: 0 },
+        alerts: []
     };
 
     window[`toggleControls_${gid}`] = function() {
@@ -100,8 +101,10 @@ function createGeyserCard(gid, name) {
             <span class="metric-label">ML Prediction</span>
             <span class="metric-value" style="font-size: 1rem" id="pred-${gid}">-</span>
         </div>
+        <div class="alert-container" id="alerts-${gid}"></div>
         <button class="controls-toggle" onclick="toggleControls_${gid}()">⚙️ Overrides & Controls</button>
         <div class="control-panel" id="controls-${gid}">
+            <div id="override-status-${gid}" style="display:none;" class="override-status"></div>
             <div class="spinner-container">
                 <div class="spinner-group">
                     <button class="spinner-btn" onclick="spin_${gid}('d', 1)">▲</button>
@@ -125,9 +128,9 @@ function createGeyserCard(gid, name) {
                 </div>
             </div>
             <div class="action-buttons">
-                <button class="btn btn-stop" onclick="sendControl_${gid}('stop')">⏹️ Stop Heater</button>
-                <button class="btn btn-request" onclick="sendControl_${gid}('request')">♨️ Set Request</button>
-                <button class="btn btn-cancel" onclick="sendControl_${gid}('cancel')">❌ Cancel Overrides</button>
+                <button class="btn btn-stop" id="btn-stop-${gid}" onclick="sendControl_${gid}('stop')">⏹️ Stop Heater</button>
+                <button class="btn btn-request" id="btn-request-${gid}" onclick="sendControl_${gid}('request')">♨️ Set Request</button>
+                <button class="btn btn-cancel" id="btn-cancel-${gid}" onclick="sendControl_${gid}('cancel')">❌ Cancel Overrides</button>
             </div>
         </div>
     `;
@@ -250,6 +253,48 @@ function onMessageArrived(message) {
 
             updateGeyserUI(gid);
             addLog(`⚙️ Geyser ${gid}: ML Predicted Demand=${payload.ml_prediction} (Conf: ${(payload.confidence * 100).toFixed(1)}%). Command Sent -> ${payload.command}`, 'prediction');
+            
+            // Handle Alerts
+            const alertsCont = document.getElementById(`alerts-${gid}`);
+            if (alertsCont && payload.alerts) {
+                let htmlStr = '';
+                payload.alerts.forEach(al => {
+                    if (al === 'low_water') {
+                        htmlStr += `<div class="alert-badge alert-low-water">⚠️ LOW WATER LEVEL</div>`;
+                        if (!geysers[gid].alerts.includes('low_water')) {
+                            addLog(`⚠️ Geyser ${gid} reported LOW water level! Heater disabled.`, 'danger');
+                        }
+                    } else if (al === 'mains_off') {
+                        htmlStr += `<div class="alert-badge alert-mains-off">⚡ MAINS SWITCH IS OFF</div>`;
+                        if (!geysers[gid].alerts.includes('mains_off')) {
+                            addLog(`⚡ Geyser ${gid} is predicted ON but no current detected. Check Mains Switch!`, 'danger');
+                        }
+                    }
+                });
+                alertsCont.innerHTML = htmlStr;
+                geysers[gid].alerts = payload.alerts; // Update tracked state
+            }
+            
+            // Handle Overrides Lock UI
+            const statusBox = document.getElementById(`override-status-${gid}`);
+            const btnStop = document.getElementById(`btn-stop-${gid}`);
+            const btnReq = document.getElementById(`btn-request-${gid}`);
+            
+            if (payload.override_active && statusBox && btnStop && btnReq) {
+                // Lock the UI
+                btnStop.disabled = true;
+                btnReq.disabled = true;
+                statusBox.style.display = 'block';
+                const typ = payload.override_type.toUpperCase();
+                const mins = payload.override_remaining_mins;
+                statusBox.innerText = `Active Override: ${typ} (${mins} mins remaining)`;
+            } else if (statusBox && btnStop && btnReq) {
+                // Unlock the UI
+                btnStop.disabled = false;
+                btnReq.disabled = false;
+                statusBox.style.display = 'none';
+            }
+            
             return;
         }
 
