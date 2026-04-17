@@ -18,7 +18,61 @@ function createGeyserCard(gid, name) {
         temp: 25,
         flow: 0,
         state: 'OFF',
-        name: name || `Geyser ${gid}`
+        name: name || `Geyser ${gid}`,
+        spinners: { d: 0, h: 0, m: 0 }
+    };
+
+    window[`toggleControls_${gid}`] = function() {
+        const cp = document.getElementById(`controls-${gid}`);
+        cp.classList.toggle('show');
+    };
+
+    window[`spin_${gid}`] = function(unit, delta) {
+        let val = geysers[gid].spinners[unit];
+        val += delta;
+        if (unit === 'm' && val >= 60) { val = 0; geysers[gid].spinners['h']++; }
+        if (unit === 'm' && val < 0) { val = 59; geysers[gid].spinners['h']--; }
+        if (unit === 'h' && val >= 24) { val = 0; geysers[gid].spinners['d']++; }
+        if (unit === 'h' && val < 0) { val = 23; geysers[gid].spinners['d']--; }
+        
+        // Clamp
+        if (geysers[gid].spinners['d'] < 0) geysers[gid].spinners['d'] = 0;
+        if (geysers[gid].spinners['h'] < 0) geysers[gid].spinners['h'] = 0;
+        if (geysers[gid].spinners['m'] < 0) geysers[gid].spinners['m'] = 0;
+        
+        // Max 14 days
+        if (geysers[gid].spinners['d'] > 14) geysers[gid].spinners['d'] = 14;
+        
+        geysers[gid].spinners[unit] = val;
+        
+        document.getElementById(`spin-d-${gid}`).innerText = geysers[gid].spinners['d'];
+        document.getElementById(`spin-h-${gid}`).innerText = geysers[gid].spinners['h'];
+        document.getElementById(`spin-m-${gid}`).innerText = geysers[gid].spinners['m'];
+    };
+
+    window[`sendControl_${gid}`] = function(action) {
+        let payload = {};
+        const totalMinutes = (geysers[gid].spinners['d'] * 24 * 60) + (geysers[gid].spinners['h'] * 60) + geysers[gid].spinners['m'];
+        
+        if (action === 'stop' && totalMinutes > 0) {
+            payload = { stop_minutes: totalMinutes };
+            addLog(`⏳ ${geysers[gid].name}: Manual STOP requested for ${totalMinutes} mins.`, 'prediction');
+        } else if (action === 'request' && totalMinutes > 0) {
+            payload = { request_minutes: totalMinutes };
+            addLog(`♨️ ${geysers[gid].name}: Hot water requested IN ${totalMinutes} mins.`, 'prediction');
+        } else if (action === 'cancel') {
+            payload = { cancel: true };
+            addLog(`🛑 ${geysers[gid].name}: Cancelled all overrides.`, 'prediction');
+        } else {
+            return; // 0 time specified for stop/request
+        }
+
+        const msg = new Paho.MQTT.Message(JSON.stringify(payload));
+        msg.destinationName = `${BASE_TOPIC}/geyser/${gid}/control`;
+        client.send(msg);
+        
+        // Hide panel
+        document.getElementById(`controls-${gid}`).classList.remove('show');
     };
 
     const grid = document.getElementById("geysers-grid");
@@ -45,6 +99,36 @@ function createGeyserCard(gid, name) {
         <div class="metric mt-2">
             <span class="metric-label">ML Prediction</span>
             <span class="metric-value" style="font-size: 1rem" id="pred-${gid}">-</span>
+        </div>
+        <button class="controls-toggle" onclick="toggleControls_${gid}()">⚙️ Overrides & Controls</button>
+        <div class="control-panel" id="controls-${gid}">
+            <div class="spinner-container">
+                <div class="spinner-group">
+                    <button class="spinner-btn" onclick="spin_${gid}('d', 1)">▲</button>
+                    <span class="spinner-val" id="spin-d-${gid}">0</span>
+                    <span class="spinner-label">Days</span>
+                    <button class="spinner-btn" onclick="spin_${gid}('d', -1)">▼</button>
+                </div>
+                <div style="font-size: 1.5rem; color: var(--text-secondary)">:</div>
+                <div class="spinner-group">
+                    <button class="spinner-btn" onclick="spin_${gid}('h', 1)">▲</button>
+                    <span class="spinner-val" id="spin-h-${gid}">0</span>
+                    <span class="spinner-label">Hours</span>
+                    <button class="spinner-btn" onclick="spin_${gid}('h', -1)">▼</button>
+                </div>
+                <div style="font-size: 1.5rem; color: var(--text-secondary)">:</div>
+                <div class="spinner-group">
+                    <button class="spinner-btn" onclick="spin_${gid}('m', 15)">▲</button>
+                    <span class="spinner-val" id="spin-m-${gid}">0</span>
+                    <span class="spinner-label">Mins</span>
+                    <button class="spinner-btn" onclick="spin_${gid}('m', -15)">▼</button>
+                </div>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-stop" onclick="sendControl_${gid}('stop')">⏹️ Stop Heater</button>
+                <button class="btn btn-request" onclick="sendControl_${gid}('request')">♨️ Set Request</button>
+                <button class="btn btn-cancel" onclick="sendControl_${gid}('cancel')">❌ Cancel Overrides</button>
+            </div>
         </div>
     `;
     grid.appendChild(card);

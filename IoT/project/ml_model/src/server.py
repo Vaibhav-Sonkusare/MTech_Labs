@@ -5,11 +5,15 @@ import pandas as pd
 import numpy as np
 import os
 from collections import deque
-from datetime import datetime
+from datetime import datetime, timedelta
 from utils import MODELS_DIR, BASE_DIR
 
 # Global simulation state
 demo_time_override = None
+
+# Overrides state tracking
+# geyser_id -> {'manual_stop_until': datetime, 'hot_water_requested_at': datetime}
+geyser_overrides = {}
 
 # ==============================================================================
 # Configuration
@@ -138,9 +142,11 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe(f"{BASE_TOPIC}/delete")
     # Subscribe to data from all registered geysers
     client.subscribe(f"{BASE_TOPIC}/geyser/+/data")
+    # Subscribe to control topics for UI overrides
+    client.subscribe(f"{BASE_TOPIC}/geyser/+/control")
     # Subscribe to demo time override
     client.subscribe(f"{BASE_TOPIC}/demo/set_time")
-    print(f"Subscribed to: {BASE_TOPIC}/init, {BASE_TOPIC}/delete, {BASE_TOPIC}/geyser/+/data, {BASE_TOPIC}/demo/set_time")
+    print(f"Subscribed to: {BASE_TOPIC}/init, {BASE_TOPIC}/delete, {BASE_TOPIC}/geyser/+/data, {BASE_TOPIC}/geyser/+/control, {BASE_TOPIC}/demo/set_time")
 
 def on_message(client, userdata, msg):
     global registry
@@ -206,8 +212,31 @@ def on_message(client, userdata, msg):
                 print(f"[DEMO] Time override cleared. Returning to real time.")
             return
 
-        # ── DATA PHASE: Normal operation ─────────────────────────────
+        # ── DATA AND CONTROL PHASE ───────────────────────────────────
         topic_parts = topic.split('/')
+        
+        if len(topic_parts) >= 3 and topic_parts[-1] == 'control':
+            gid = topic_parts[-2]
+            if gid not in geyser_overrides:
+                geyser_overrides[gid] = {'manual_stop_until': None, 'hot_water_requested_at': None}
+            
+            curr_time = demo_time_override if demo_time_override else datetime.now()
+            
+            if payload.get('cancel'):
+                geyser_overrides[gid] = {'manual_stop_until': None, 'hot_water_requested_at': None}
+                print(f"[{gid}] 🛑 User cancelled all overrides.")
+            elif 'stop_minutes' in payload:
+                mins = payload['stop_minutes']
+                geyser_overrides[gid]['hot_water_requested_at'] = None
+                geyser_overrides[gid]['manual_stop_until'] = curr_time + timedelta(minutes=mins)
+                print(f"[{gid}] ⏳ Manual Stop until: {geyser_overrides[gid]['manual_stop_until']}")
+            elif 'request_minutes' in payload:
+                mins = payload['request_minutes']
+                geyser_overrides[gid]['manual_stop_until'] = None
+                geyser_overrides[gid]['hot_water_requested_at'] = curr_time + timedelta(minutes=mins)
+                print(f"[{gid}] ♨️ Hot Water Requested for: {geyser_overrides[gid]['hot_water_requested_at']}")
+            return
+
         if len(topic_parts) >= 3 and topic_parts[-1] == 'data':
             gid = topic_parts[-2]
             
@@ -230,17 +259,45 @@ def on_message(client, userdata, msg):
                 prediction = int(xgb_model.predict(features_df)[0])
                 confidence = float(xgb_model.predict_proba(features_df)[0][1])
                 
-                # Safety & Control logic
-                command = "OFF"
+                # Check Overrides
+                if gid not in geyser_overrides:
+                    geyser_overrides[gid] = {'manual_stop_until': None, 'hot_water_requested_at': None}
+                
+                curr_time = demo_time_override if demo_time_override else datetime.now()
+                override = geyser_overrides[gid]
+                
+                # Priority 1: Safety
                 if str(level).upper() == 'LOW' or level == 0:
                     command = "OFF"
-                    print(f"[{gid}] ⚠️ SAFETY CUTOFF ⚠️: Water level is LOW!")
-                elif w_temp < 40:
-                    command = "ON"
+                    print(f"[{gid}] ⚠️ SAFETY CUTOFF: Water level LOW!")
                 elif w_temp > 75:
                     command = "OFF"
-                elif prediction == 1 or flow > 0:
-                    command = "ON"
+                # Priority 2: Manual Stop
+                elif override['manual_stop_until'] and curr_time < override['manual_stop_until']:
+                    command = "OFF"
+                    prediction = 0 # Mask ML output for demo
+                # Priority 3: Hot Water Request (Pre-heat 30 mins prior to the requested time)
+                elif override['hot_water_requested_at'] and override['hot_water_requested_at'] >= curr_time:
+                    time_until_request = (override['hot_water_requested_at'] - curr_time).total_seconds() / 60.0
+                    if time_until_request <= 30.0 and w_temp < 60:
+                        command = "ON"
+                        prediction = 1 # Mask ML output
+                    else:
+                        command = "OFF" if w_temp >= 60 else "OFF" # Don't heat yet if outside window, unless flow happens
+                        prediction = 0
+                # Priority 4: ML and Flow logic
+                else:
+                    if override['manual_stop_until'] and curr_time >= override['manual_stop_until']:
+                        override['manual_stop_until'] = None # Clear elapsed state
+                    if override['hot_water_requested_at'] and curr_time > override['hot_water_requested_at']:
+                        override['hot_water_requested_at'] = None # Clear elapsed state
+                        
+                    if w_temp < 40:
+                        command = "ON"
+                    elif prediction == 1 or flow > 0:
+                        command = "ON"
+                    else:
+                        command = "OFF"
                 
                 resp = {
                     "geyser_id": gid,

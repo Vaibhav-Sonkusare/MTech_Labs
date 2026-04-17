@@ -200,3 +200,112 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(255,255,255,0.2);
 }
+
+/* Control Panel Styles */
+.controls-toggle {
+    margin-top: 1rem;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.controls-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.control-panel {
+    display: none; /* hidden by default */
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    gap: 1rem;
+    flex-direction: column;
+}
+
+.control-panel.show {
+    display: flex;
+}
+
+.spinner-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+
+.spinner-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.spinner-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.spinner-btn {
+    background: none;
+    border: none;
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 1.25rem;
+    transition: transform 0.1s;
+}
+
+.spinner-btn:active {
+    transform: scale(0.9);
+}
+
+.spinner-val {
+    font-size: 1.25rem;
+    font-weight: 700;
+    width: 2rem;
+    text-align: center;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.btn {
+    flex: 1;
+    padding: 0.5rem;
+    border: none;
+    border-radius: 0.25rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    font-size: 0.875rem;
+    color: white;
+}
+
+.btn:hover {
+    opacity: 0.8;
+}
+
+.btn-stop {
+    background: var(--danger);
+}
+
+.btn-request {
+    background: var(--accent);
+}
+
+.btn-cancel {
+    background: var(--text-secondary);
+    flex-basis: 100%;
+    margin-top: 0.5rem;
+}
